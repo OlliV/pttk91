@@ -10,71 +10,25 @@
   * @{
   */
 
-/** TODO Interrupt vector, interrupts & Timer */
-
 #include <stdio.h>
 #include <stdint.h>
 
 #include "arit.h"
-#include "pttk91.h"
+#include "outp.h"
+#include "svc.h"
+#include "vm.h"
 
 /* Error codes */
 #define VM_ERR_INVALID_OPCODE           -1
-#define VM_ERR_ADDRESS_OUT_OF_BOUNDS    -2
-#define VM_ERR_REGISTER_OUT_OF_BOUNDS   -3
-#define VM_ERR_BAD_ACCESS_MODE          -4
+#define VM_ERR_PARAM_ERROR              -2
+#define VM_ERR_ADDRESS_OUT_OF_BOUNDS    -3
+#define VM_ERR_REGISTER_OUT_OF_BOUNDS   -4
+#define VM_ERR_BAD_ACCESS_MODE          -5
+#define VM_ERR_ILLEGAL_SVC              -6
 
 /* Macros */
 #define VM_REG_OUT_OF_BOUNDS(regX)              (regX < 0 || regX >= PTTK91_NUM_REGS)
 #define VM_MEM_OUT_OF_BOUNDS(memaddr, memsize)  (memaddr >= memsize || memaddr < 0)
-
-/**
- * Virtual machine state.
- */
-struct vm_state {
-    int regs[PTTK91_NUM_REGS];
-    int pc; /* program counter */
-
-    /* Rest of variables for internal use */
-    int opcode;
-    /* operands: */
-    int rj;
-    int m;
-    int ri;
-    int imm;
-
-    /**
-     * state register.<br/>
-     * <b>index:</b>
-     * + gre - greater
-     * + equ - equal
-     * + les - less
-     * + ovf - arithmetic overflow
-     * + div - divide by zero
-     * + uni - unknown instruction
-     * + fma - forbidden memory access
-     * + dei - device interrupt
-     * + svc - supervisor call
-     * + pri - priviledged mode
-     * + nin - interrupts disabled
-     */
-    struct sr_t {
-        unsigned int gre : 1;
-        unsigned int equ : 1;
-        unsigned int les : 1;
-        unsigned int ovf : 1;
-        unsigned int div : 1;
-        unsigned int uni : 1;
-        unsigned int fma : 1;
-        unsigned int dei : 1;
-        unsigned int svc : 1;
-        unsigned int pri : 1;
-        unsigned int nin : 1;
-    } sr;
-
-    /* the VM runs until this flag becomes 0 */
-    int running;
-};
 
 /**
  * Initializes a vm_state structure.
@@ -92,6 +46,20 @@ void init_vm_state(struct vm_state * state)
     state->m = 0;
     state->ri = 0;
     state->imm = 0;
+
+    /* Clear status register */
+    state->sr.gre = 0;
+    state->sr.equ = 0;
+    state->sr.les = 0;
+    state->sr.ovf = 0;
+    state->sr.div = 0;
+    state->sr.uni = 0;
+    state->sr.fma = 0;
+    state->sr.dei = 0;
+    state->sr.svc = 0;
+    state->sr.pri = 0;
+    state->sr.nin = 0;
+
     state->running = 1;
 }
 
@@ -117,7 +85,7 @@ static int decode(struct vm_state * state, uint32_t instr)
 {
     state->opcode   = (instr & 0xFF000000);
     state->rj       = (instr & 0x00E00000) >> PTTK91_RJ_POS;
-    state->m        = (instr & 0x00180000) >> PTTK91_M_POS;
+    state->m        = (instr & 0x00180000);
     state->ri       = (instr & 0x00070000) >> PTTK91_PI_POS;
     state->imm      = (instr & 0x000fffff);
 
@@ -133,26 +101,27 @@ static int decode(struct vm_state * state, uint32_t instr)
  */
 static int eval(struct vm_state * state, uint32_t * mem, int memsize)
 {
+    int opcode = state->opcode;
     int rj = state->rj;
     int ri = state->ri;
     int param;
+
+    int i; /* Internal iterator */
 
     param = state->imm;
     if (ri != 0) {
         /* Add indexing register Ri */
         param += state->regs[ri];
     }
-    if (state->m == 1) {
-        /* direct memory fetch */
+    if (state->m == PTTK91_ADDRMOD_1) { /* Direct memory fetch */
         if (VM_MEM_OUT_OF_BOUNDS(param, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         param = mem[param];
-    } else if (state->m == 2) {
-        int opcode = state->opcode;
+    } else if (state->m == PTTK91_ADDRMOD_2) { /* Memory pointer */
         if ((opcode >= PTTK91_JUMP && opcode <= PTTK91_JNGRE) || (opcode == PTTK91_STORE)) {
-            /* + For all branching instructions: if m == 2 => bad access mode
-             * + PTTK91_STORE if state->m == 2 => bad access mode
+            /* + For all branching instructions: mode 2 is bad access mode
+             * + PTTK91_STORE doesn't support mode 2
              */
             return VM_ERR_BAD_ACCESS_MODE;
         }
@@ -167,13 +136,13 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         param = mem[param];
-    } else if (state->m == 3) {
-        /* There is no mode 3 */
+    } else if (state->m == PTTK91_ADDRMOD_3) {
+        /* Mode 3 is not specified */
         return VM_ERR_BAD_ACCESS_MODE;
     }
 
     /* Execute */
-    switch(state->opcode) {
+    switch(opcode) {
     case PTTK91_NOP:
         break;
 
@@ -193,9 +162,8 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         /* TODO */
         break;
     case PTTK91_OUT:
-        /* TODO portable version */
-        if (param == 0) {
-            printf("CRT output: %i\n", state->regs[rj]);
+        if (param == OUTP_CRT) {
+            outp_crt(state->regs[rj]);
         }
         break;
 
@@ -209,11 +177,19 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         state->regs[rj] = state->regs[rj] * param;
         break;
     case PTTK91_DIV:
-        /* TODO div by zero check? */
+        /* Div by zero check */
+        if (param == 0) {
+            state->sr.div = 1;
+            return VM_ERR_PARAM_ERROR;
+        }
         state->regs[rj] = state->regs[rj] / param;
         break;
     case PTTK91_MOD:
-        /* TODO div by zero check? */
+        /* Div by zero check */
+        if (param == 0) {
+            state->sr.div = 1;
+            return VM_ERR_PARAM_ERROR;
+        }
         state->regs[rj] = state->regs[rj] % param;
         break;
 
@@ -327,28 +303,52 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         /* TODO */
         break;
     case PTTK91_PUSH:
-        /* TODO */
+        state->regs[rj] = state->regs[rj] + 1;
+        if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+            return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+        }
+        mem[state->regs[rj]] = param;
         break;
     case PTTK91_POP:
-        /* TODO */
+        if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+            return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+        }
+        state->regs[ri] = mem[state->regs[rj]];
+        state->regs[rj] = state->regs[rj] - 1;
         break;
-    case PTTK91_PUSHR:
-        /* TODO */
+    case PTTK91_PUSHR: /* Push R0..R5 */
+        for (i = 0; i < PTTK91_NUM_REGS - 2; i++) {
+            state->regs[rj] = state->regs[rj] + 1;
+
+            if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+                return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+            }
+            mem[state->regs[rj]] = state->regs[i];
+        }
         break;
-    case PTTK91_POPR:
-        /* TODO */
+    case PTTK91_POPR: /* Pop R5..R0 */
+        for (i = PTTK91_NUM_REGS - 3; i >= 0; i--) {
+            if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+                return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+            }
+            state->regs[i] =  mem[state->regs[rj]];
+            state->regs[rj] = state->regs[rj] - 1;
+        }
         break;
 
     case PTTK91_SVC:
         /* TODO */
-
-        /* halt */
-        printf("halt\n");
-        state->running = 0;
+        if (param == SVC_HALT) {
+#if VM_DEBUG == 1
+            printf("halt\n");
+#endif
+            state->running = 0;
+        } else {
+            return VM_ERR_ILLEGAL_SVC;
+        }
         break;
     default:
-        printf("Illegal instruction\n");
-        break;
+        return VM_ERR_INVALID_OPCODE;
     }
 
     return 0;
@@ -356,8 +356,9 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
 
 /**
  * Print all registers.
+ * TODO This should be removed or moved elsewhere in the future
  */
-void showRegs(const struct vm_state * state)
+static void showRegs(const struct vm_state * state)
 {
     int i;
     printf("regs = ");
@@ -366,33 +367,38 @@ void showRegs(const struct vm_state * state)
     printf("PC %i \n", state->pc);
 }
 
+/**
+ * Run program from memory.
+ * @param state virtual machine state registers.
+ * @param mem program memory space.
+ * @param memsize size of program memory space.
+ */
 void run(struct vm_state * state, uint32_t * mem, int memsize)
 {
     uint32_t instr;
 
     do {
+#if VM_DEBUG == 1
         showRegs(state);
+#endif
         if(fetch(&instr, state, mem, memsize)) {
-            /* TODO PC out of bounds */
+            /* TODO PC out of bounds
+             * Should somehow dump at least status register
+             * on all targets. */
             printf("PC out of bounds");
             return;
         }
         decode(state, instr);
-        eval(state, mem, memsize);
+        if (eval(state, mem, memsize)) {
+            /* TODO Error log
+             * Should somehow dump at least status register
+             * on all targets. */
+        }
     } while (state->running);
+#if VM_DEBUG == 1
     showRegs(state);
+#endif
  }
-
-int main( int argc, const char * argv[] )
-{
-    uint32_t prog[] = { 0x1120000a, 0x04200000, 0x7000000b };
-    int memsize = 3;
-    struct vm_state state;
-
-    init_vm_state(&state);
-    run(&state, prog, memsize);
-    return 0;
-}
 
 /**
   * @}

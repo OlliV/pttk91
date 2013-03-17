@@ -1,5 +1,5 @@
-SRCDIR = ./src ./src/portable
-IDIR = ./include
+SRCDIR = ./src/ ./src/portable/linux/
+IDIR = ./include ./src
 LIBS=
 
 SRC = $(foreach d,$(dir $(SRCDIR)),$(wildcard $(d)*.c))

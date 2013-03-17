@@ -6,19 +6,30 @@
  ******************************************************************************
  */
 
-/* PTTK91 instruction word:
- * +--------------------------------------------------------------------+
- * ¦  Operation code  ¦  Rj ¦ M ¦  Ri ¦      address part ADDR          ¦
- * ¦  8 bits          ¦  3  ¦ 2 ¦  3  ¦         16 bits                 ¦
- * +--------------------------------------------------------------------+
- * 31               24 23           16 15                               0
+/* PTTK91 instruction word
+ * =======================
+ *     +--------------------------------------------------------------------+
+ *     ¦  Operation code  ¦  Rj ¦ M ¦  Ri ¦      address part ADDR          ¦
+ *     ¦  8 bits          ¦  3  ¦ 2 ¦  3  ¦         16 bits                 ¦
+ *     +--------------------------------------------------------------------+
+ *     31               24 23           16 15                               0
+ *
+ * Registers
+ * =========
+ * + R0       Default index register
+ * + R1
+ * + R2
+ * + R3
+ * + R5
+ * + R6 (SP)  Stack Pointer
+ * + R7 (FP)  Frame Pointer
  */
 
 #ifndef PTTK91_H
 #define PTTK91_H
 
 /* Instruction word definitions */
-#define PTTK91_NUM_REGS     4
+#define PTTK91_NUM_REGS     8
 #define PTTK91_OPCODE_POS   24
 #define PTTK91_RJ_POS       21
 #define PTTK91_M_POS        19
@@ -71,5 +82,12 @@
 
 #define PTTK91_SVC      0x70 << PTTK91_OPCODE_POS
 /* End of PTTK91 opcodes */
+
+/* Addressing modes */
+#define PTTK91_ADDRMOD_0 0x0                 /* From register */
+#define PTTK91_ADDRMOD_1 0x1 << PTTK91_M_POS /* From memory */
+#define PTTK91_ADDRMOD_2 0x2 << PTTK91_M_POS /* Memory pointer */
+#define PTTK91_ADDRMOD_3 0x3 << PTTK91_M_POS /* Not used */
+/* End of Addressing modes */
 
 #endif /* PTTK91_H */
