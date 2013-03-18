@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 #include "vm.h"
-#include "elf_loader.h"
+#include "b91_loader.h"
 
 void showRegs(const struct vm_state * state);
 
@@ -18,7 +18,9 @@ int main( int argc, const char * argv[] )
         return 1;
     }
 
-    elf_loader_read_file(mem, memsize, argv[1]);
+    if(b91_loader_read_file(mem, memsize, argv[1])) {
+        return 2;
+    }
 
     init_vm_state(&state);
     run(&state, mem, memsize);

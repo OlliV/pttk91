@@ -33,7 +33,7 @@ void elf_loader_read_file(uint32_t * mem, int memsize, char * name)
 
     /* Read instructins */
     /** TODO Read .text offset and size */
-    elf_loader_read_instrs(mem, fp, 0x5a, len - 1);
+    elf_loader_read_instrs(mem, fp, 0x6e, len - 1);
 
     fclose(fp);
 }
