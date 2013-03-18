@@ -55,7 +55,10 @@ struct vm_state {
         unsigned int nin : 1;
     } sr;
 
-    /* the VM runs until this flag becomes 0 */
+    /** End of code segment */
+    int code_seg_end;
+
+    /** the VM runs until this flag becomes 0 */
     int running;
 };
 

@@ -29,6 +29,11 @@
 /* Macros */
 #define VM_REG_OUT_OF_BOUNDS(regX)              (regX < 0 || regX >= PTTK91_NUM_REGS)
 #define VM_MEM_OUT_OF_BOUNDS(memaddr, memsize)  (memaddr >= memsize || memaddr < 0)
+#if VM_CODE_SEGMENT_RW == 0
+#define VM_MEM_OUT_OF_BOUNDS_STORE(memaddr, code_end, memsize)  (memaddr >= memsize || memaddr <= code_end)
+#else
+#define VM_MEM_OUT_OF_BOUNDS_STORE(memaddr, code_end, memsize)  (memaddr >= memsize || memaddr < 0)
+#endif
 
 /**
  * Initializes a vm_state structure.
@@ -60,6 +65,8 @@ void init_vm_state(struct vm_state * state)
     state->sr.pri = 0;
     state->sr.nin = 0;
 
+    /** TOOD */
+    state->code_seg_end = 0;
     state->running = 1;
 }
 
@@ -118,7 +125,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         param = mem[param];
-    } else if (state->m == PTTK91_ADDRMOD_2) { /* Memory pointer */
+    } else if (state->m == PTTK91_ADDRMOD_2) { /* Indirect meory fetch */
         if ((opcode >= PTTK91_JUMP && opcode <= PTTK91_JNGRE) || (opcode == PTTK91_STORE)) {
             /* + For all branching instructions: mode 2 is bad access mode
              * + PTTK91_STORE doesn't support mode 2
@@ -126,7 +133,6 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
             return VM_ERR_BAD_ACCESS_MODE;
         }
 
-        /* Pointer fetch */
         if (VM_MEM_OUT_OF_BOUNDS(param, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
@@ -147,7 +153,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         break;
 
     case PTTK91_STORE:
-        if (VM_MEM_OUT_OF_BOUNDS(param, memsize)) {
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(param, state->code_seg_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         mem[param] = state->regs[rj];
@@ -304,13 +310,13 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         break;
     case PTTK91_PUSH:
         state->regs[rj] = state->regs[rj] + 1;
-        if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         mem[state->regs[rj]] = param;
         break;
     case PTTK91_POP:
-        if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         state->regs[ri] = mem[state->regs[rj]];
@@ -320,7 +326,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         for (i = 0; i < PTTK91_NUM_REGS - 2; i++) {
             state->regs[rj] = state->regs[rj] + 1;
 
-            if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+            if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
             }
             mem[state->regs[rj]] = state->regs[i];
@@ -328,7 +334,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         break;
     case PTTK91_POPR: /* Pop R5..R0 */
         for (i = PTTK91_NUM_REGS - 3; i >= 0; i--) {
-            if (VM_MEM_OUT_OF_BOUNDS(state->regs[rj], memsize)) {
+            if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
             }
             state->regs[i] =  mem[state->regs[rj]];
