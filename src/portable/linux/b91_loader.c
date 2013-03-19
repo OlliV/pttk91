@@ -86,14 +86,18 @@ int b91_loader_read_file(uint32_t * mem, int memsize, const char * name)
                 break;
             }
 
+#if VM_DEBUG == 1
             printf("SYM: %s\n", str);
+#endif
             break;
         default:
             break;
         }
     }
 
+#if VM_DEBUG == 1
     printf("\nbegin = %i, end = %i\n", begin, end);
+#endif
 
     fclose(pFile);
     return 0;
