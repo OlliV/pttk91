@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-
+#include "config.h"
 #include "b91_loader.h"
 
 enum dsections {
@@ -29,14 +29,15 @@ int b91_loader_read_file(uint32_t * mem, int memsize, int * code_size, const cha
 {
     char str[80];
     FILE * pFile;
-    enum dsections state;
-
+    enum dsections state = header;
     uint32_t mem_i = 0;
+
+    *code_size = 0;
 
     pFile = fopen(name, "r");
     if (!pFile)
     {
-        fprintf(stderr, "Unable to open file %s", name);
+        fprintf(stderr, "Unable to open file %s\n", name);
         return 1;
     }
 

@@ -55,14 +55,17 @@ struct vm_state {
         unsigned int nin : 1;
     } sr;
 
-    /** End of code segment */
-    int code_seg_end;
+    /** Size of memory area */
+    int memsize;
+
+    /** End of code section */
+    int code_sec_end;
 
     /** the VM runs until this flag becomes 0 */
     int running;
 };
 
-void init_vm_state(struct vm_state * state, int code_size);
-void run(struct vm_state * state, uint32_t * mem, int memsize);
+void init_vm_state(struct vm_state * state, int code_size, int memsize);
+void run(struct vm_state * state, uint32_t * mem);
 
 #endif /* VM_H */

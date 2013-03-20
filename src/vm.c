@@ -29,11 +29,11 @@
 #define VM_ERR_BAD_ACCESS_MODE          7
 #define VM_ERR_ILLEGAL_SVC              8
 
-#define VM_ERR_STR(code) case code: printf("%i, %s\n", code, #code); return
-#define VM_ERR_STR2(code, msg) case code: return printf("%i, %s\n", code, msg); return
+#define VM_ERR_STR(code) case code: fprintf(stderr, "%i, %s\n", code, #code); return
+#define VM_ERR_STR2(code, msg) case code: return fprintf(stderr, "%i, %s\n", code, msg); return
 static void print_error_msg(int error_code)
 {
-    printf("Runtime error : ");
+    fprintf(stderr, "Runtime error : ");
     switch (error_code)
     {
         VM_ERR_STR(VM_ERR_NO_ERROR); /* Hope this pops up somewhere ^_^ */
@@ -57,7 +57,8 @@ static void print_error_msg(int error_code)
 #define VM_PC_OUT_OF_BOUNDS(pc, codesize, memsize) (pc > codesize || VM_MEM_OUT_OF_BOUNDS(pc, memsize))
 #elif VM_DATA_ALLOW_PC == 1
 #define VM_PC_OUT_OF_BOUNDS(pc, codesize, memsize) VM_MEM_OUT_OF_BOUNDS(pc, memsize)
-#else Incorrect value of VM_DATA_ALLOW_PC
+#else
+#error Incorrect value of VM_DATA_ALLOW_PC
 #endif
 
 #if VM_CODE_AREA_RW == 0
@@ -74,7 +75,7 @@ static void print_error_msg(int error_code)
  * @param state vm state.
  * @param code_size size of code section.
  */
-void init_vm_state(struct vm_state * state, int code_size)
+void init_vm_state(struct vm_state * state, int code_size, int memsize)
 {
     int i;
 
@@ -101,16 +102,17 @@ void init_vm_state(struct vm_state * state, int code_size)
     state->sr.pri = 0;
     state->sr.nin = 0;
 
-    state->code_seg_end = code_size;
+    state->memsize = memsize;
+    state->code_sec_end = code_size;
     state->running = 1;
 }
 
 /**
  * Fetch next instruction.
  */
-static int fetch(uint32_t * instr, struct vm_state * state, const uint32_t * mem, int memsize)
+static int fetch(uint32_t * instr, struct vm_state * state, const uint32_t * mem)
 {
-    if (VM_PC_OUT_OF_BOUNDS(state->pc, state->code_seg_end, memsize)) {
+    if (VM_PC_OUT_OF_BOUNDS(state->pc, state->code_sec_end, state->memsize)) {
         /* PC out of bounds */
         return VM_ERR_PC_OUT_OF_BOUNDS;
     }
@@ -140,12 +142,13 @@ static int decode(struct vm_state * state, uint32_t instr)
 /**
  * Evaluate the last decoded instruction.
  */
-static int eval(struct vm_state * state, uint32_t * mem, int memsize)
+static int eval(struct vm_state * state, uint32_t * mem)
 {
     int opcode = state->opcode;
     int rj = state->rj;
     int ri = state->ri;
     int param;
+    int memsize = state->memsize;
 
     int i; /* Internal iterator */
 
@@ -187,7 +190,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         break;
 
     case PTTK91_STORE:
-        if (VM_MEM_OUT_OF_BOUNDS_STORE(param, state->code_seg_end, memsize)) {
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(param, state->code_sec_end, memsize)) {
             return VM_ERR_WR_ADDRESS_OUT_OF_BOUNDS;
         }
         mem[param] = state->regs[rj];
@@ -341,13 +344,13 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         break;
     case PTTK91_PUSH:
         state->regs[rj] = state->regs[rj] + 1;
-        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         mem[state->regs[rj]] = param;
         break;
     case PTTK91_POP:
-        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         state->regs[ri] = mem[state->regs[rj]];
@@ -357,7 +360,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         for (i = 0; i < PTTK91_NUM_REGS - 2; i++) {
             state->regs[rj] = state->regs[rj] + 1;
 
-            if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
+            if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
             }
             mem[state->regs[rj]] = state->regs[i];
@@ -365,7 +368,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         break;
     case PTTK91_POPR: /* Pop R5..R0 */
         for (i = PTTK91_NUM_REGS - 3; i >= 0; i--) {
-            if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_seg_end, memsize)) {
+            if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
             }
             state->regs[i] =  mem[state->regs[rj]];
@@ -410,7 +413,7 @@ static void showRegs(const struct vm_state * state)
  * @param mem program memory space.
  * @param memsize size of program memory space.
  */
-void run(struct vm_state * state, uint32_t * mem, int memsize)
+void run(struct vm_state * state, uint32_t * mem)
 {
     uint32_t instr;
     int error_code;
@@ -419,15 +422,15 @@ void run(struct vm_state * state, uint32_t * mem, int memsize)
 #if VM_DEBUG == 1
         showRegs(state);
 #endif
-        if(fetch(&instr, state, mem, memsize)) {
+        if(fetch(&instr, state, mem)) {
             /* TODO PC out of bounds
              * Should somehow dump at least status register
              * on all targets. */
-            printf("PC out of bounds\n");
+            fprintf(stderr, "PC out of bounds\n");
             return;
         }
         decode(state, instr);
-        if ((error_code = eval(state, mem, memsize))) {
+        if ((error_code = eval(state, mem))) {
             /* TODO Error log
              * Should somehow dump at least status register
              * on all targets. */
