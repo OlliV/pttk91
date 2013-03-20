@@ -7,7 +7,7 @@
 /** Print debug messages */
 #define VM_DEBUG 1
 /** Allow writes in code section */
-#define VM_CODE_SEGMENT_RW 1
+#define VM_CODE_AREA_RW 0
 /** Allow program execution in data section. */
 #define VM_DATA_ALLOW_PC 0
 
