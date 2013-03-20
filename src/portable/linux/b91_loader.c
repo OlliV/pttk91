@@ -10,22 +10,27 @@ enum dsections {
     header,
     code_b,
     code_e,
-    code,
     data_b,
     data_e,
-    data,
+    load,
     symbols,
     eof
 };
 
-int b91_loader_read_file(uint32_t * mem, int memsize, const char * name)
+/**
+ * Load B91 binary file to the memory.
+ * @param mem pointer to the memory array used by the virtual machine.
+ * @param memsize size of the memory area.
+ * @param code_size returns the size of the code section.
+ * @param name file name.
+ * @return 0 if no error; 1 if can't open the given file; 2 if out of memory.
+ */
+int b91_loader_read_file(uint32_t * mem, int memsize, int * code_size, const char * name)
 {
     char str[80];
     FILE * pFile;
     enum dsections state;
 
-    int begin;
-    int end;
     uint32_t mem_i = 0;
 
     pFile = fopen(name, "r");
@@ -36,7 +41,6 @@ int b91_loader_read_file(uint32_t * mem, int memsize, const char * name)
     }
 
     rewind(pFile);
-
     while (fscanf(pFile, "%s", str) != EOF) {
         switch (state) {
         case header:
@@ -45,40 +49,39 @@ int b91_loader_read_file(uint32_t * mem, int memsize, const char * name)
             }
             break;
         case code_b:
-            begin = atoi(str);
+            /* Code/Text start address */
+            /* begin = atoi(str); */
             state = code_e;
             break;
         case code_e:
-            end = atoi(str);
-            state = code;
+            /* Code/Text end address */
+            *code_size = atoi(str);
+            state = load;
             break;
-        case code:
+        case load:
+            /* Code/Data section */
             if (strcmp("___data___", str) == 0) {
                 state = data_b;
+                break;
+            } else if (strcmp("___symboltable___", str) == 0) {
+                state = symbols;
                 break;
             }
 
             if (mem_i >= memsize) {
-                return -1;
+                /* Not enough memory to load this binary */
+                fclose(pFile);
+                return 2;
             }
+
+            /* Store line to the memory location */
             mem[mem_i++] = (uint32_t)atoi(str);
             break;
         case data_b:
             state = data_e;
             break;
         case data_e:
-            state = data;
-            break;
-        case data:
-            if (strcmp("___symboltable___", str) == 0) {
-                state = symbols;
-                break;
-            }
-
-            if (mem_i >= memsize) {
-                return -1;
-            }
-            mem[mem_i++] = (uint32_t)atoi(str);
+            state = load; /* Load data */
             break;
         case symbols:
             if (strcmp("___end___", str) == 0) {
@@ -87,16 +90,18 @@ int b91_loader_read_file(uint32_t * mem, int memsize, const char * name)
             }
 
 #if VM_DEBUG == 1
+            /* Print symbol */
             printf("SYM: %s\n", str);
 #endif
             break;
         default:
+            /* EOF */
             break;
         }
     }
 
 #if VM_DEBUG == 1
-    printf("\nbegin = %i, end = %i\n", begin, end);
+    printf("\ncode_size = %i\n", *code_size);
 #endif
 
     fclose(pFile);

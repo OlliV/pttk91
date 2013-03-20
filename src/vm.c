@@ -19,26 +19,41 @@
 #include "vm.h"
 
 /* Error codes */
-#define VM_ERR_INVALID_OPCODE           -1
-#define VM_ERR_PARAM_ERROR              -2
-#define VM_ERR_ADDRESS_OUT_OF_BOUNDS    -3
-#define VM_ERR_REGISTER_OUT_OF_BOUNDS   -4
-#define VM_ERR_BAD_ACCESS_MODE          -5
-#define VM_ERR_ILLEGAL_SVC              -6
+#define VM_ERR_INVALID_OPCODE           1
+#define VM_ERR_PARAM_ERROR              2
+#define VM_ERR_ADDRESS_OUT_OF_BOUNDS    3
+#define VM_ERR_REGISTER_OUT_OF_BOUNDS   4
+#define VM_ERR_PC_OUT_OF_BOUNDS         5
+#define VM_ERR_BAD_ACCESS_MODE          6
+#define VM_ERR_ILLEGAL_SVC              7
 
 /* Macros */
 #define VM_REG_OUT_OF_BOUNDS(regX)              (regX < 0 || regX >= PTTK91_NUM_REGS)
+/* Check if mem address is between 0 and memsize */
 #define VM_MEM_OUT_OF_BOUNDS(memaddr, memsize)  (memaddr >= memsize || memaddr < 0)
-#if VM_CODE_SEGMENT_RW == 0
-#define VM_MEM_OUT_OF_BOUNDS_STORE(memaddr, code_end, memsize)  (memaddr >= memsize || memaddr <= code_end)
-#else
-#define VM_MEM_OUT_OF_BOUNDS_STORE(memaddr, code_end, memsize)  (memaddr >= memsize || memaddr < 0)
+
+#if VM_DATA_ALLOW_PC == 0
+#define VM_PC_OUT_OF_BOUNDS(pc, codesize, memsize) (pc > codesize || VM_MEM_OUT_OF_BOUNDS(pc, memsize))
+#elif VM_DATA_ALLOW_PC == 1
+#define VM_PC_OUT_OF_BOUNDS(pc, codesize, memsize) VM_MEM_OUT_OF_BOUNDS(pc, memsize)
+#else VM_DATA_ALLOW_PC incorrectly set
 #endif
+
+#if VM_CODE_SEGMENT_RW == 0
+#define VM_MEM_OUT_OF_BOUNDS_STORE(memaddr, codesize, memsize)  (memaddr >= memsize || memaddr < codesize)
+#elif VM_CODE_SEGMENT_RW == 1
+#define VM_MEM_OUT_OF_BOUNDS_STORE(memaddr, codesize, memsize)  (memaddr >= memsize || memaddr < 0)
+#else
+#error VM_CODE_SEGMENT_RW incorrectly set
+#endif
+/* End of Macros */
 
 /**
  * Initializes a vm_state structure.
+ * @param state vm state.
+ * @param code_size size of code section.
  */
-void init_vm_state(struct vm_state * state)
+void init_vm_state(struct vm_state * state, int code_size)
 {
     int i;
 
@@ -65,8 +80,7 @@ void init_vm_state(struct vm_state * state)
     state->sr.pri = 0;
     state->sr.nin = 0;
 
-    /** TOOD */
-    state->code_seg_end = 0;
+    state->code_seg_end = code_size;
     state->running = 1;
 }
 
@@ -76,9 +90,9 @@ void init_vm_state(struct vm_state * state)
 static int fetch(uint32_t * instr, struct vm_state * state, const uint32_t * mem, int memsize)
 {
     int pc = state->pc;
-    if (VM_MEM_OUT_OF_BOUNDS(pc, memsize)) {
+    if (VM_PC_OUT_OF_BOUNDS(pc, state->code_seg_end, memsize)) {
         /* PC out of bounds */
-        return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+        return VM_ERR_PC_OUT_OF_BOUNDS;
     }
 
     *instr = mem[state->pc++];
@@ -94,7 +108,7 @@ static int decode(struct vm_state * state, uint32_t instr)
     state->rj       = (instr & 0x00E00000) >> PTTK91_RJ_POS;
     state->m        = (instr & 0x00180000);
     state->ri       = (instr & 0x00070000) >> PTTK91_PI_POS;
-    state->imm      = (instr & 0x000fffff);
+    state->imm      = (instr & 0x0000ffff);
 
     if (VM_REG_OUT_OF_BOUNDS(state->rj) || VM_REG_OUT_OF_BOUNDS(state->ri)) {
         return VM_ERR_REGISTER_OUT_OF_BOUNDS;
@@ -159,10 +173,7 @@ static int eval(struct vm_state * state, uint32_t * mem, int memsize)
         mem[param] = state->regs[rj];
         break;
     case PTTK91_LOAD:
-        if (VM_MEM_OUT_OF_BOUNDS(param, memsize)) {
-            return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
-        }
-        state->regs[rj] = mem[param];
+        state->regs[rj] = param;
         break;
     case PTTK91_IN:
         /* TODO */
@@ -369,7 +380,7 @@ static void showRegs(const struct vm_state * state)
     int i;
     printf("regs = ");
     for(i = 0; i < PTTK91_NUM_REGS; i++)
-        printf( "r%i: %04X, ", i, state->regs[i]);
+        printf( "r%i: %08X, ", i, state->regs[i]);
     printf("PC %i \n", state->pc);
 }
 
@@ -382,6 +393,7 @@ static void showRegs(const struct vm_state * state)
 void run(struct vm_state * state, uint32_t * mem, int memsize)
 {
     uint32_t instr;
+    int error_code;
 
     do {
 #if VM_DEBUG == 1
@@ -391,14 +403,16 @@ void run(struct vm_state * state, uint32_t * mem, int memsize)
             /* TODO PC out of bounds
              * Should somehow dump at least status register
              * on all targets. */
-            printf("PC out of bounds");
+            printf("PC out of bounds\n");
             return;
         }
         decode(state, instr);
-        if (eval(state, mem, memsize)) {
+        if ((error_code = eval(state, mem, memsize))) {
             /* TODO Error log
              * Should somehow dump at least status register
              * on all targets. */
+            printf("Runtime error : %i\n", error_code);
+            return;
         }
     } while (state->running);
 #if VM_DEBUG == 1
