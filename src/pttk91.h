@@ -28,8 +28,12 @@
 #ifndef PTTK91_H
 #define PTTK91_H
 
-/* Instruction word definitions */
+/* Register definitions */
 #define PTTK91_NUM_REGS     8
+#define PTTK91_FP           6
+#define PTTK91_SP           7
+
+/* Instruction word definitions */
 #define PTTK91_OPCODE_POS   24
 #define PTTK91_RJ_POS       21
 #define PTTK91_M_POS        19

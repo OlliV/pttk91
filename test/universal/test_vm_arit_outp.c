@@ -115,12 +115,29 @@ static char * test_pc_prot()
     return 0;
 }
 
+static char * test_push()
+{
+    struct vm_state state;
+    uint32_t prog[] = { 0x33c00005, /* push sp, =5 */
+                        0x02460000, /* load r2, sp */
+                        0x70c0000b  /* svc sp, =halt */
+                      };
+    test_init_vm(mem, prog, state, memsize);
+
+    run(&state, mem);
+
+    pu_assert("error, Expected push to store a value 5", mem[3] == 0x5);
+    pu_assert("error, Expected push to increment the sp value", state.regs[2] == 0x3);
+    return 0;
+}
+
 static void all_tests()
 {
     pu_run_test(test_load);
     pu_run_test(test_store);
     pu_run_test(test_code_prot);
     pu_run_test(test_pc_prot);
+    pu_run_test(test_push);
 }
 
 int main(int argc, char **argv)

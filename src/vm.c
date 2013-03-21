@@ -82,6 +82,9 @@ void init_vm_state(struct vm_state * state, int code_size, int memsize)
     for (i = 0; i < PTTK91_NUM_REGS; i++) {
         state->regs[i] = 0;
     }
+    state->regs[PTTK91_FP] = code_size - 1;
+    state->regs[PTTK91_SP] = code_size - 1;
+
     state->pc = 0;
     state->opcode = 0;
     state->rj = 0;
