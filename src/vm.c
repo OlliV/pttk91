@@ -166,7 +166,8 @@ static int eval(struct vm_state * state, uint32_t * mem)
         }
         param = mem[param];
     } else if (state->m == PTTK91_ADDRMOD_2) { /* Indirect meory fetch */
-        if ((opcode >= PTTK91_JUMP && opcode <= PTTK91_JNGRE) || (opcode == PTTK91_STORE)) {
+        if ((opcode >= PTTK91_JUMP && opcode <= PTTK91_JNGRE)
+            || (opcode == PTTK91_STORE)) {
             /* + For all branching instructions: mode 2 is bad access mode
              * + PTTK91_STORE doesn't support mode 2
              */
@@ -344,13 +345,29 @@ static int eval(struct vm_state * state, uint32_t * mem)
         if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
+
         mem[state->regs[rj] - 1] = state->pc; /* Push PC */
         mem[state->regs[rj]] = state->regs[PTTK91_FP]; /* Push FP */
         state->regs[PTTK91_FP] = state->regs[rj]; /* Set new FP */
         state->pc = param; /* Branch */
         break;
     case PTTK91_EXIT:
-        /* TODO */
+        sp = state->regs[PTTK91_FP];
+        /* Check that old fp location is valid */
+        if (VM_MEM_OUT_OF_BOUNDS(sp, memsize)) {
+            return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+        }
+
+        /* Check that new sp & fp are valid */
+        if (VM_MEM_OUT_OF_BOUNDS(sp - 2 - param, memsize)
+            || VM_MEM_OUT_OF_BOUNDS(mem[sp], memsize)) {
+            return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+        }
+
+        /* Read back original sp & fp values */
+        state->regs[PTTK91_SP] = sp - 2 - param;
+        state->regs[PTTK91_FP] = mem[sp];
+        state->pc = mem[sp - 1]; /* Return */
         break;
     case PTTK91_PUSH:
         state->regs[rj] = state->regs[rj] + 1;

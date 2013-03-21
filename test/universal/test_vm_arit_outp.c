@@ -218,6 +218,31 @@ static char * test_call()
 
 }
 
+static char * test_exit()
+{
+    struct vm_state state;
+    uint32_t prog[] = { 0x33c00001, /* push sp, =1 */
+                        0x33c00002, /* push sp, =2 ; push two parameters */
+                        0x31c00006, /* call sp, test */
+                        0x02260000, /* load r1, sp */
+                        0x02470000, /* load r2, fp */
+                        0x70c0000b, /* svc sp, =halt */
+                        0x02600003, /* test load r3, =3 */
+                        0x32c00002, /* exit sp, =2 */
+                        0x70c0000b  /* svc sp, =halt */
+                      };
+    test_init_vm(mem, prog, state, memsize);
+
+    run(&state, mem);
+
+    pu_assert("error, SP not correctly reverted back after exit", state.regs[1] == 0x8);
+    pu_assert("error, FP not correctly reverted back after exit", state.regs[2] == 0x8);
+    pu_assert("error, Branch after call instruction failed?", state.regs[3] == 0x3);
+    return 0;
+
+}
+
+
 static void all_tests()
 {
     pu_run_test(test_load);
@@ -228,6 +253,7 @@ static void all_tests()
     pu_run_test(test_pop);
     pu_run_test(test_pushr);
     pu_run_test(test_call);
+    pu_run_test(test_exit);
 }
 
 int main(int argc, char **argv)
