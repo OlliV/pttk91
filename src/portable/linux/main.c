@@ -7,8 +7,6 @@
 #include "vm.h"
 #include "b91_loader.h"
 
-void showRegs(const struct vm_state * state);
-
 int main( int argc, const char * argv[] )
 {
     uint32_t * mem;
@@ -22,10 +20,10 @@ int main( int argc, const char * argv[] )
     opterr = 0;
     while ((c = getopt(argc, (char * const*)argv, "f:m:")) != -1) {
         switch (c) {
-        case 'f':
+        case 'f': /* File name */
             file_name = optarg;
             break;
-        case 'm':
+        case 'm': /* Amount of memory to be allocated */
             memsize = atoi(optarg);
             break;
         case '?':
@@ -35,7 +33,7 @@ int main( int argc, const char * argv[] )
                 fprintf(stderr, "Unknown option `-%c'.\n", optopt);
             else
                 fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
-                return 1;
+                exit(1);
         default:
             abort();
         }
@@ -53,9 +51,9 @@ int main( int argc, const char * argv[] )
     }
 
     init_vm_state(&state, code_size, memsize);
+    printf("=== Run ===\n");
     run(&state, mem);
 
     free(mem);
-
     return 0;
 }

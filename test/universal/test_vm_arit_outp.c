@@ -10,9 +10,9 @@
 uint32_t mem[1024];
 int memsize;
 
-#define test_init_vm(mem, prog, state) do {\
+#define test_init_vm(mem, prog, state, memsize) do {\
                                     memcpy((void*)mem, (void*)prog, sizeof(prog));\
-                                    init_vm_state(&state, sizeof(prog) / sizeof(uint32_t));\
+                                    init_vm_state(&state, sizeof(prog) / sizeof(uint32_t), memsize);\
                                     } while(0)
 
 #define print_conf(conf) printf("--Note: %s = %i\n", #conf, conf)
@@ -35,11 +35,11 @@ static char * test_load()
                         0x02700005, /* load r3, @b */
                         0x70c0000b  /* svc sp, =halt */
                       };
-    test_init_vm(mem, prog, state);
+    test_init_vm(mem, prog, state, memsize);
     mem[4] = 0xa; /* a dc 10 */
     mem[5] = 0x4; /* b dc 4 */
 
-    run(&state, mem, memsize);
+    run(&state, mem);
 
     pu_assert("error, Load immediate : load r1, =1", state.regs[1] == 0x1);
     pu_assert("error, Load direct mem fetch : load r2, a", state.regs[2] == 0xa);
@@ -58,9 +58,9 @@ static char * test_store()
                         0x01280009, /* store r1, @pb */
                         0x70c0000b  /* svc sp, =halt */
                       };
-    test_init_vm(mem, prog, state);
+    test_init_vm(mem, prog, state, memsize);
 
-    run(&state, mem, memsize);
+    run(&state, mem);
 
     pu_assert("error, Store the value of r1 to a", mem[7] == 0x1);
     pu_assert("error, Store the address of b to pb", mem[9] == 0x8);
@@ -77,12 +77,12 @@ static char * test_code_prot()
                         0x02200001, /* tst load r1, =1 */
                         0x70c0000b  /* svc sp, =halt */
                       };
-    test_init_vm(mem, prog, state);
+    test_init_vm(mem, prog, state, memsize);
     mem[4] = 0x02200002; /* load r1, =2 */
 
     print_conf(VM_CODE_AREA_RW);
 
-    run(&state, mem, memsize);
+    run(&state, mem);
 
 #if VM_CODE_AREA_RW == 0
     pu_assert("error, Code memory area protection failed.", state.regs[1] == 0x0);
@@ -97,13 +97,13 @@ static char * test_pc_prot()
     struct vm_state state;
     uint32_t prog[] = { 0x02200001 /* load r1, =1 */
                       };
-    test_init_vm(mem, prog, state);
+    test_init_vm(mem, prog, state, memsize);
     mem[3] = 0x02200002; /* load r1, =2 */
     mem[4] = 0x70c0000b; /* svc sp, =halt */
 
     print_conf(VM_DATA_ALLOW_PC);
 
-    run(&state, mem, memsize);
+    run(&state, mem);
 
 #if VM_DATA_ALLOW_PC == 0
     pu_assert("error, PC should not run into data area.", state.pc <= 0x2);

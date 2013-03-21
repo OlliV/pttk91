@@ -32,6 +32,10 @@ int b91_loader_read_file(uint32_t * mem, int memsize, int * code_size, const cha
     enum dsections state = header;
     uint32_t mem_i = 0;
 
+#if VM_DEBUG == 1
+    int sym_cnt = 0;
+#endif
+
     *code_size = 0;
 
     pFile = fopen(name, "r");
@@ -92,7 +96,14 @@ int b91_loader_read_file(uint32_t * mem, int memsize, int * code_size, const cha
 
 #if VM_DEBUG == 1
             /* Print symbol */
-            printf("SYM: %s\n", str);
+            if (sym_cnt == 0) {
+                printf("=== Symbols ===\n");
+            }
+            if (sym_cnt++ % 2) {
+                printf("%s\n", str);
+            } else {
+                printf("%s\t", str);
+            }
 #endif
             break;
         default:
@@ -102,7 +113,7 @@ int b91_loader_read_file(uint32_t * mem, int memsize, int * code_size, const cha
     }
 
 #if VM_DEBUG == 1
-    printf("\ncode_size = %i\n", *code_size);
+    printf("\nB91 file loaded: %s\ncode_size = %i\n", name, *code_size);
 #endif
 
     fclose(pFile);
