@@ -356,9 +356,9 @@ static int eval(struct vm_state * state, uint32_t * mem)
         state->regs[ri] = mem[state->regs[rj]];
         state->regs[rj] = state->regs[rj] - 1;
         break;
-    case PTTK91_PUSHR: /* Push R0..R5 */
-        for (i = 0; i < PTTK91_NUM_REGS - 2; i++) {
-            state->regs[rj] = state->regs[rj] + 1;
+    case PTTK91_PUSHR: /* Push R0..R6 */
+            state->regs[rj] = state->regs[rj] + PTTK91_NUM_REGS - 1;
+        for (i = 0; i < PTTK91_NUM_REGS - 1; i++) {
 
             if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
@@ -366,14 +366,14 @@ static int eval(struct vm_state * state, uint32_t * mem)
             mem[state->regs[rj]] = state->regs[i];
         }
         break;
-    case PTTK91_POPR: /* Pop R5..R0 */
-        for (i = PTTK91_NUM_REGS - 3; i >= 0; i--) {
+    case PTTK91_POPR: /* Pop R6..R0 */
+        for (i = PTTK91_NUM_REGS - 2; i >= 0; i--) {
             if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
             }
-            state->regs[i] =  mem[state->regs[rj]];
-            state->regs[rj] = state->regs[rj] - 1;
+            state->regs[i] = mem[state->regs[rj - i]];
         }
+        state->regs[rj] = state->regs[rj] - (PTTK91_NUM_REGS - 1);
         break;
 
     case PTTK91_SVC:
