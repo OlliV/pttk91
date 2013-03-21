@@ -131,6 +131,93 @@ static char * test_push()
     return 0;
 }
 
+static char * test_pop()
+{
+    struct vm_state state;
+    uint32_t prog[] = { 0x02c00004, /* load sp, =4 */
+                        0x34c10000, /* pop sp, r1 */
+                        0x02460000, /* load r2, sp */
+                        0x70c0000b  /* svc sp, =halt */
+                      };
+    test_init_vm(mem, prog, state, memsize);
+    mem[4] = 0x1; /* a dc 1 */
+
+    run(&state, mem);
+
+    pu_assert("error, Expected pop to load a value 1", state.regs[1] == 0x1);
+    pu_assert("error, Expected pop to decrement the sp value", state.regs[2] == 0x3);
+    return 0;
+}
+
+static char * test_pushr()
+{
+    struct vm_state state;
+    uint32_t prog[] = { 0x02200001, /* load r1, =1 */
+                        0x02400002, /* load r2, =2 */
+                        0x02600003, /* load r3, =3 */
+                        0x02800004, /* load r4, =4 */
+                        0x02a00005, /* load r5, =5 */
+                        0x35c80000, /* pushr, sp */
+                        0x02260000, /* load r1, sp */
+                        0x02470000, /* load r2, fp */
+                        0x70c0000b  /* svc sp, =halt */
+                      };
+    test_init_vm(mem, prog, state, memsize);
+
+    run(&state, mem);
+
+    pu_assert("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]) == 7);
+    pu_assert("error, Expected pushr to push =1 as a second value in the stack", mem[10] == 1);
+    pu_assert("error, Expected =5 in mem[14]", mem[14] == 5);
+    return 0;
+}
+
+static char * test_popr()
+{
+    struct vm_state state;
+    uint32_t prog[] = { 0x02200001, /* load r1, =1 */
+                        0x02400002, /* load r2, =2 */
+                        0x02600003, /* load r3, =3 */
+                        0x02800004, /* load r4, =4 */
+                        0x02a00005, /* load r5, =5 */
+                        0x35c80000, /* pushr, sp */
+                        0x02260000, /* load r1, sp */
+                        0x02470000, /* load r2, fp */
+                        0x70c0000b  /* svc sp, =halt */
+                      };
+    test_init_vm(mem, prog, state, memsize);
+
+    run(&state, mem);
+
+    pu_assert("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]) == 7);
+    pu_assert("error, Expected pushr to push =1 as a second value in the stack", mem[10] == 1);
+    pu_assert("error, Expected =5 in mem[14]", mem[14] == 5);
+    return 0;
+}
+
+static char * test_call()
+{
+    struct vm_state state;
+    uint32_t prog[] = { 0x33c003e8, /* push sp, =1000 */
+                        0x31c00003, /* call sp, test */
+                        0x70c0000b, /* svc sp, =halt */
+                        0x35c80000, /* test pushr sp */
+                        0x02470000, /* load r2, fp */
+                        0x70c0000b  /* svc sp, =halt */
+                      };
+    test_init_vm(mem, prog, state, memsize);
+
+    run(&state, mem);
+
+    pu_assert("error, Parameter pushed correctly", mem[6] == 1000);
+    pu_assert("error, Return address pushed correctly by call instr", mem[7] == 0x2);
+    pu_assert("error, Original Frame Pointer pushed correctly by call instr", mem[8] == 0x5);
+    pu_assert("error, New Stack Pointer increments to correct position", mem[15] == 0xf);
+    pu_assert("error, New Frame Pointer set correctly", state.regs[2] == 0x8);
+    return 0;
+
+}
+
 static void all_tests()
 {
     pu_run_test(test_load);
@@ -138,6 +225,9 @@ static void all_tests()
     pu_run_test(test_code_prot);
     pu_run_test(test_pc_prot);
     pu_run_test(test_push);
+    pu_run_test(test_pop);
+    pu_run_test(test_pushr);
+    pu_run_test(test_call);
 }
 
 int main(int argc, char **argv)

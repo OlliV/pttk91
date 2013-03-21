@@ -30,8 +30,8 @@
 
 /* Register definitions */
 #define PTTK91_NUM_REGS     8
-#define PTTK91_FP           6
-#define PTTK91_SP           7
+#define PTTK91_SP           6
+#define PTTK91_FP           7
 
 /* Instruction word definitions */
 #define PTTK91_OPCODE_POS   24

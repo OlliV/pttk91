@@ -82,8 +82,8 @@ void init_vm_state(struct vm_state * state, int code_size, int memsize)
     for (i = 0; i < PTTK91_NUM_REGS; i++) {
         state->regs[i] = 0;
     }
-    state->regs[PTTK91_FP] = code_size - 1;
     state->regs[PTTK91_SP] = code_size - 1;
+    state->regs[PTTK91_FP] = code_size - 1;
 
     state->pc = 0;
     state->opcode = 0;
@@ -153,7 +153,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     int param;
     int memsize = state->memsize;
 
-    int i; /* Internal iterator */
+    int i, sp; /* Internal temp variables */
 
     param = state->imm;
     if (ri != 0) {
@@ -340,33 +340,47 @@ static int eval(struct vm_state * state, uint32_t * mem)
         break;
 
     case PTTK91_CALL:
-        /* TODO */
+        state->regs[rj] = state->regs[rj] + 2;
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
+            return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
+        }
+        mem[state->regs[rj] - 1] = state->pc; /* Push PC */
+        mem[state->regs[rj]] = state->regs[PTTK91_FP]; /* Push FP */
+        state->regs[PTTK91_FP] = state->regs[rj]; /* Set new FP */
+        state->pc = param; /* Branch */
         break;
     case PTTK91_EXIT:
         /* TODO */
         break;
     case PTTK91_PUSH:
         state->regs[rj] = state->regs[rj] + 1;
-        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
+        sp = state->regs[rj];
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(sp, state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
-        mem[state->regs[rj]] = param;
+        mem[sp] = param;
         break;
     case PTTK91_POP:
-        if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
+        sp = state->regs[rj];
+        /* POP: Second operand is always a register */
+        if (state->m != 0) {
+            return VM_ERR_BAD_ACCESS_MODE;
+        }
+
+        if (VM_MEM_OUT_OF_BOUNDS_STORE(sp, state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
-        state->regs[ri] = mem[state->regs[rj]];
-        state->regs[rj] = state->regs[rj] - 1;
+        state->regs[ri] = mem[sp];
+        state->regs[rj] = sp - 1;
         break;
     case PTTK91_PUSHR: /* Push R0..R6 */
-            state->regs[rj] = state->regs[rj] + PTTK91_NUM_REGS - 1;
+        sp = state->regs[rj] + 1;
+        state->regs[rj] = state->regs[rj] + PTTK91_NUM_REGS - 1;
         for (i = 0; i < PTTK91_NUM_REGS - 1; i++) {
-
-            if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
+            if (VM_MEM_OUT_OF_BOUNDS_STORE(sp, state->code_sec_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
             }
-            mem[state->regs[rj]] = state->regs[i];
+            mem[sp++] = state->regs[i];
         }
         break;
     case PTTK91_POPR: /* Pop R6..R0 */
