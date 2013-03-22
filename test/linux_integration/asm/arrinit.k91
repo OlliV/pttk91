@@ -1,0 +1,23 @@
+Tbl ds 8
+k   dc 0
+erv dc 99999999
+init    load r1, =7
+l_init  load r2, r1
+        mul r2, =347
+        sub r2, =875
+        store r2, Tbl(r1)
+        add r3, r2 ; add to sum
+        sub r1, =1
+        jnneg r1, l_init
+main    in r1, =kbd
+        store r1, k
+        jneg r1, err
+        comp r1, =7
+        jgre err
+        load r2, Tbl(r1)
+        out r2, =crt
+        load r2, r3 ; load sum to r2
+        jump end
+err     load r2, erv
+end     out r2, =crt
+        svc sp, =halt
