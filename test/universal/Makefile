@@ -8,5 +8,7 @@ SRCDIR = ../../src/ ../../src/portable/linux/
 # Add here one or more include directories.
 IDIR = ../../include ../../src ../../src/portable/linux
 
+#CCFLAGS += -std=gnu99
+
 # DO NOT TOUCH
 include ../punit/Makefile.punit

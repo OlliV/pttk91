@@ -147,15 +147,16 @@ static int decode(struct vm_state * state, uint32_t instr)
  */
 static int eval(struct vm_state * state, uint32_t * mem)
 {
+    /* Copy some data for (hopefully) faster access */
     int opcode = state->opcode;
     int rj = state->rj;
     int ri = state->ri;
-    int param;
     int memsize = state->memsize;
 
-    int i, sp; /* Internal temp variables */
+    int param; /* Final second arg value */
+    int i, sp; /* Temp variables */
 
-    param = state->imm;
+    param = state->imm; /* Starting point for "parsin" the final value */
     if (ri != 0) {
         /* Add indexing register Ri */
         param += state->regs[ri];
@@ -193,6 +194,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     case PTTK91_NOP:
         break;
 
+    /* Data transfer instructions */
     case PTTK91_STORE:
         if (VM_MEM_OUT_OF_BOUNDS_STORE(param, state->code_sec_end, memsize)) {
             return VM_ERR_WR_ADDRESS_OUT_OF_BOUNDS;
@@ -211,6 +213,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
         }
         break;
 
+    /* Arithmetic instructions */
     case PTTK91_ADD:
         state->regs[rj] = state->regs[rj] + param;
         break;
@@ -237,6 +240,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
         state->regs[rj] = state->regs[rj] % param;
         break;
 
+    /* Logic instructions */
     case PTTK91_AND:
         state->regs[rj] = (unsigned int)(state->regs[rj]) & (unsigned int)param;
         break;
@@ -275,6 +279,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
         }
         break;
 
+    /* Branching instructions */
     case PTTK91_JUMP:
         state->pc = param;
         break;
@@ -340,8 +345,10 @@ static int eval(struct vm_state * state, uint32_t * mem)
         }
         break;
 
+    /* Subroutine instructions */
     case PTTK91_CALL:
         state->regs[rj] = state->regs[rj] + 2;
+        /* Check that the new stack pointer is valid */
         if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
@@ -353,25 +360,28 @@ static int eval(struct vm_state * state, uint32_t * mem)
         break;
     case PTTK91_EXIT:
         sp = state->regs[PTTK91_FP];
-        /* Check that old fp location is valid */
+        /* Check that the old fp location is valid */
         if (VM_MEM_OUT_OF_BOUNDS(sp, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
 
-        /* Check that new sp & fp are valid */
+        /* Check that the new sp & fp are valid */
         if (VM_MEM_OUT_OF_BOUNDS(sp - 2 - param, memsize)
             || VM_MEM_OUT_OF_BOUNDS(mem[sp], memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
 
-        /* Read back original sp & fp values */
-        state->regs[PTTK91_SP] = sp - 2 - param;
+        /* Read back the original sp & fp values */
+        state->regs[rj] = sp - 2 - param;
         state->regs[PTTK91_FP] = mem[sp];
         state->pc = mem[sp - 1]; /* Return */
         break;
+
+    /* Stack instructions */
     case PTTK91_PUSH:
         state->regs[rj] = state->regs[rj] + 1;
         sp = state->regs[rj];
+        /* Check that the new sp value is valid */
         if (VM_MEM_OUT_OF_BOUNDS_STORE(sp, state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
@@ -379,7 +389,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
         break;
     case PTTK91_POP:
         sp = state->regs[rj];
-        /* POP: Second operand is always a register */
+        /* POP: Second operand should be always a register */
         if (state->m != 0) {
             return VM_ERR_BAD_ACCESS_MODE;
         }
@@ -393,6 +403,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     case PTTK91_PUSHR: /* Push R0..R6 */
         sp = state->regs[rj] + 1;
         state->regs[rj] = state->regs[rj] + PTTK91_NUM_REGS - 1;
+
         for (i = 0; i < PTTK91_NUM_REGS - 1; i++) {
             if (VM_MEM_OUT_OF_BOUNDS_STORE(sp, state->code_sec_end, memsize)) {
                 return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
@@ -410,6 +421,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
         state->regs[rj] = state->regs[rj] - (PTTK91_NUM_REGS - 1);
         break;
 
+    /* System calls */
     case PTTK91_SVC:
         /* TODO */
         if (param == SVC_HALT) {
