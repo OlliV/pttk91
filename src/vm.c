@@ -132,11 +132,11 @@ static int fetch(uint32_t * instr, struct vm_state * state, const uint32_t * mem
  */
 static int decode(struct vm_state * state, uint32_t instr)
 {
-    state->opcode   = (instr & 0xFF000000);
-    state->rj       = (instr & 0x00E00000) >> PTTK91_RJ_POS;
-    state->m        = (instr & 0x00180000);
-    state->ri       = (instr & 0x00070000) >> PTTK91_PI_POS;
-    state->imm      = (instr & 0x0000ffff);
+    state->opcode   = (int)(instr & 0xFF000000);
+    state->rj       = (int)((instr & 0x00E00000) >> PTTK91_RJ_POS);
+    state->m        = (int)(instr & 0x00180000);
+    state->ri       = (int)((instr & 0x00070000) >> PTTK91_PI_POS);
+    state->imm      = (int)(instr & 0x0000ffff);
 
     if (VM_REG_OUT_OF_BOUNDS(state->rj) || VM_REG_OUT_OF_BOUNDS(state->ri)) {
         return VM_ERR_REGISTER_OUT_OF_BOUNDS;
@@ -159,7 +159,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     int param; /* Final second arg value */
     int i, sp; /* Temp variables */
 
-    param = state->imm; /* Starting point for "parsin" the final value */
+    param = state->imm; /* Starting point for "parsing" the final value */
     if (ri != 0) {
         /* Add indexing register Ri */
         param += state->regs[ri];
@@ -372,7 +372,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
 
         /* Check that the new sp & fp are valid */
         if (VM_MEM_OUT_OF_BOUNDS(sp - 2 - param, memsize)
-            || VM_MEM_OUT_OF_BOUNDS(mem[sp], memsize)) {
+            || VM_MEM_OUT_OF_BOUNDS((int)(mem[sp]), memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
 
@@ -435,7 +435,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
 #endif
             state->running = 0;
         } else if (param == SVC_LIB) {
-            
+
         }  else {
             return VM_ERR_ILLEGAL_SVC;
         }
@@ -456,7 +456,7 @@ static void showRegs(const struct vm_state * state)
     int i;
     printf("regs = ");
     for(i = 0; i < PTTK91_NUM_REGS; i++)
-        printf( "r%i: %08X, ", i, state->regs[i]);
+        printf( "r%i: %08X, ", i, (unsigned int)(state->regs[i]));
     printf("PC: %i \n", state->pc);
 }
 
@@ -468,24 +468,52 @@ static void showRegs(const struct vm_state * state)
  */
 void run(struct vm_state * state, uint32_t * mem)
 {
-    uint32_t instr;
+    uint32_t instr = 0;
     int error_code;
+    int rstate = -1;
 
     do {
-#if VM_DEBUG == 1
-        showRegs(state);
-#endif
-        if((error_code = fetch(&instr, state, mem))) {
-            /* PC out of bounds */
-            print_error_msg(error_code);
-            return;
+        rstate++;
+        rstate = rstate & (0x4 - 1);
+
+        if (rstate == 0) {
+            rstate++;
+            #if VM_DEBUG == 1
+                showRegs(state);
+            #endif
         }
-        decode(state, instr);
-        if ((error_code = eval(state, mem))) {
+
+        switch (rstate) {
+        case 0:
+#if VM_DEBUG == 1
+            showRegs(state);
+#endif
+        rstate++;
+        /*@fallthrough@*/
+
+        case 1:
+            error_code = fetch(&instr, state, mem);
+        break;
+
+        case 2:
+            error_code = decode(state, instr);
+            break;
+
+        case 3:
+            error_code = eval(state, mem);
+            break;
+
+        default:
+            error_code = 0;
+            break;
+        }
+
+        if(error_code != 0) {
             print_error_msg(error_code);
             return;
         }
     } while (state->running);
+
 #if VM_DEBUG == 1
     showRegs(state);
 #endif

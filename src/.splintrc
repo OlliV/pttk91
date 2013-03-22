@@ -1,0 +1,9 @@
+-predboolint
+-nullassign
+-nullstate
+-nullpass
+-nullret
+-mustfreeonly
++matchanyintegral
+-I./
+-I../include

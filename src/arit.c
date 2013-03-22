@@ -10,7 +10,7 @@
 
 int arithmetic_right_shift(int x, unsigned int n) {
     if (x < 0 && n > 0)
-        return x >> n | ~(~0U >> n);
+        return (int)((unsigned int)x >> n | ~(~0U >> n));
     else
-        return x >> n;
+        return (int)((unsigned int)x >> n);
 }
