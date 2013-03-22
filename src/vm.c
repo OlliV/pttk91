@@ -14,6 +14,7 @@
 #include <stdint.h>
 
 #include "arit.h"
+#include "inp.h"
 #include "outp.h"
 #include "svc.h"
 #include "vm.h"
@@ -28,6 +29,7 @@
 #define VM_ERR_PC_OUT_OF_BOUNDS         6
 #define VM_ERR_BAD_ACCESS_MODE          7
 #define VM_ERR_ILLEGAL_SVC              8
+#define VM_ERR_INVALID_DEVICE           9
 
 #define VM_ERR_STR(code) case code: fprintf(stderr, "%i, %s\n", code, #code); return
 #define VM_ERR_STR2(code, msg) case code: return fprintf(stderr, "%i, %s\n", code, msg); return
@@ -45,6 +47,7 @@ static void print_error_msg(int error_code)
         VM_ERR_STR(VM_ERR_PC_OUT_OF_BOUNDS);
         VM_ERR_STR(VM_ERR_BAD_ACCESS_MODE);
         VM_ERR_STR(VM_ERR_ILLEGAL_SVC);
+        VM_ERR_STR(VM_ERR_INVALID_DEVICE);
     }
 }
 
@@ -205,11 +208,14 @@ static int eval(struct vm_state * state, uint32_t * mem)
         state->regs[rj] = param;
         break;
     case PTTK91_IN:
-        /* TODO */
+        //printf("ININNNNN\n");
+        if (inp(param, &(state->regs[rj]))) {
+            return VM_ERR_INVALID_DEVICE;
+        }
         break;
     case PTTK91_OUT:
-        if (param == OUTP_CRT) {
-            outp_crt(state->regs[rj]);
+        if (outp(param, state->regs[rj])) {
+            return VM_ERR_INVALID_DEVICE;
         }
         break;
 
@@ -426,10 +432,12 @@ static int eval(struct vm_state * state, uint32_t * mem)
         /* TODO */
         if (param == SVC_HALT) {
 #if VM_DEBUG == 1
-            printf("halt\n");
+            printf("SVC halt\n");
 #endif
             state->running = 0;
-        } else {
+        } else if (param == SVC_LIB) {
+            
+        }  else {
             return VM_ERR_ILLEGAL_SVC;
         }
         break;
@@ -468,18 +476,13 @@ void run(struct vm_state * state, uint32_t * mem)
 #if VM_DEBUG == 1
         showRegs(state);
 #endif
-        if(fetch(&instr, state, mem)) {
-            /* TODO PC out of bounds
-             * Should somehow dump at least status register
-             * on all targets. */
-            fprintf(stderr, "PC out of bounds\n");
+        if((error_code = fetch(&instr, state, mem))) {
+            /* PC out of bounds */
+            print_error_msg(error_code);
             return;
         }
         decode(state, instr);
         if ((error_code = eval(state, mem))) {
-            /* TODO Error log
-             * Should somehow dump at least status register
-             * on all targets. */
             print_error_msg(error_code);
             return;
         }

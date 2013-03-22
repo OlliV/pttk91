@@ -1,7 +1,11 @@
 #include <stdio.h>
-
 #include "outp.h"
 
-void outp_crt(int value) {
-    printf("CRT output: %i\n", value);
+int outp(int device, int value) {
+    if (device == OUTP_CRT) {
+        printf("CRT output: %i\n", value);
+    } else {
+        return 1;
+    }
+    return 0;
 }

@@ -9,19 +9,11 @@
 /* End of Portbale devices */
 
 /* Portable functions */
-void outp_crt(int value);
+int outp(int device, int value);
 /* End of portable functions */
 
 #ifndef VM_PLATFORM
 #error Please select VM_PLATFORM
-#endif
-
-#if VM_PLATFORM == LINUX
-/* Nothing to include yet */
-#elif VM_PLATFORM == ZEKE
-#error Zeke not supported yet.
-#else
-#error Platform not supported.
 #endif
 
 #endif /* OUTP_H */
