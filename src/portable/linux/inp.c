@@ -11,8 +11,8 @@ int inp(int device, int * ret_val)
     if (device == INP_KBD) {
         do {
             printf("KBD Input: ");
-            //while ((ch = getchar()) != '\n' && ch != EOF);
             err = !scanf("%i", ret_val);
+            while( (ch = fgetc( stdin )) != EOF && ch != '\n' );
         } while (err);
     } else {
         return 1;
