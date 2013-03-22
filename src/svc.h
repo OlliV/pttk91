@@ -17,12 +17,4 @@
 #error Please select VM_PLATFORM
 #endif
 
-#if VM_PLATFORM == LINUX
-/* Nothing to include yet */
-#elif VM_PLATFORM == ZEKE
-#error Zeke not supported yet.
-#else
-#error Platform not supported.
-#endif
-
 #endif /* SVC_H */
