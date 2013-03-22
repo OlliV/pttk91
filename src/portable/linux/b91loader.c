@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "config.h"
-#include "b91_loader.h"
+#include "b91loader.h"
 
 enum dsections {
     header,

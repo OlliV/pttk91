@@ -12,7 +12,7 @@ int inp(int device, int * ret_val)
         do {
             printf("KBD Input: ");
             err = !scanf("%i", ret_val);
-            while( (ch = fgetc( stdin )) != EOF && ch != '\n' );
+            //while( (ch = fgetc( stdin )) != EOF && ch != '\n' );
         } while (err);
     } else {
         return 1;

@@ -78,7 +78,7 @@ static void print_error_msg(int error_code)
  * @param state vm state.
  * @param code_size size of code section.
  */
-void init_vm_state(struct vm_state * state, int code_size, int memsize)
+void vm_init_state(struct vm_state * state, int code_size, int memsize)
 {
     int i;
 
@@ -466,7 +466,7 @@ static void showRegs(const struct vm_state * state)
  * @param mem program memory space.
  * @param memsize size of program memory space.
  */
-void run(struct vm_state * state, uint32_t * mem)
+void vm_run(struct vm_state * state, uint32_t * mem)
 {
     uint32_t instr = 0;
     int error_code;

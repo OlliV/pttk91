@@ -5,9 +5,9 @@
 #include <ctype.h>
 
 #include "vm.h"
-#include "b91_loader.h"
+#include "b91loader.h"
 
-int main( int argc, const char * argv[] )
+int main(int argc, const char * argv[])
 {
     uint32_t * mem;
     int memsize = 1024;
@@ -47,12 +47,13 @@ int main( int argc, const char * argv[] )
 
     if (b91_loader_read_file(mem, memsize, &code_size, file_name)) {
         fprintf(stderr, "Error while loading a b91 binary file.\n");
+        free(mem);
         exit(3);
     }
 
-    init_vm_state(&state, code_size, memsize);
+    vm_init_state(&state, code_size, memsize);
     printf("=== Run ===\n");
-    run(&state, mem);
+    vm_run(&state, mem);
 
     free(mem);
     return 0;

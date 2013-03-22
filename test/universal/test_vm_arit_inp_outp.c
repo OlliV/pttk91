@@ -12,7 +12,7 @@ int memsize;
 
 #define test_init_vm(mem, prog, state, memsize) do {\
                                     memcpy((void*)mem, (void*)prog, sizeof(prog));\
-                                    init_vm_state(&state, sizeof(prog) / sizeof(uint32_t), memsize);\
+                                    vm_init_state(&state, sizeof(prog) / sizeof(uint32_t), memsize);\
                                     } while(0)
 
 #define print_conf(conf) printf("--Note: %s = %i\n", #conf, conf)
@@ -39,7 +39,7 @@ static char * test_load()
     mem[4] = 0xa; /* a dc 10 */
     mem[5] = 0x4; /* b dc 4 */
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, Load immediate : load r1, =1", state.regs[1] == 0x1);
     pu_assert("error, Load direct mem fetch : load r2, a", state.regs[2] == 0xa);
@@ -60,7 +60,7 @@ static char * test_store()
                       };
     test_init_vm(mem, prog, state, memsize);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, Store the value of r1 to a", mem[7] == 0x1);
     pu_assert("error, Store the address of b to pb", mem[9] == 0x8);
@@ -82,7 +82,7 @@ static char * test_code_prot()
 
     print_conf(VM_CODE_AREA_RW);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
 #if VM_CODE_AREA_RW == 0
     pu_assert("error, Code memory area protection failed.", state.regs[1] == 0x0);
@@ -103,7 +103,7 @@ static char * test_pc_prot()
 
     print_conf(VM_DATA_ALLOW_PC);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
 #if VM_DATA_ALLOW_PC == 0
     pu_assert("error, PC should not run into data area.", state.pc <= 0x2);
@@ -124,7 +124,7 @@ static char * test_push()
                       };
     test_init_vm(mem, prog, state, memsize);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, Expected push to store a value 5", mem[3] == 0x5);
     pu_assert("error, Expected push to increment the sp value", state.regs[2] == 0x3);
@@ -142,7 +142,7 @@ static char * test_pop()
     test_init_vm(mem, prog, state, memsize);
     mem[4] = 0x1; /* a dc 1 */
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, Expected pop to load a value 1", state.regs[1] == 0x1);
     pu_assert("error, Expected pop to decrement the sp value", state.regs[2] == 0x3);
@@ -164,7 +164,7 @@ static char * test_pushr()
                       };
     test_init_vm(mem, prog, state, memsize);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]) == 7);
     pu_assert("error, Expected pushr to push =1 as a second value in the stack", mem[10] == 1);
@@ -187,7 +187,7 @@ static char * test_popr()
                       };
     test_init_vm(mem, prog, state, memsize);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]) == 7);
     pu_assert("error, Expected pushr to push =1 as a second value in the stack", mem[10] == 1);
@@ -207,7 +207,7 @@ static char * test_call()
                       };
     test_init_vm(mem, prog, state, memsize);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, Parameter pushed correctly", mem[6] == 1000);
     pu_assert("error, Return address pushed correctly by call instr", mem[7] == 0x2);
@@ -233,7 +233,7 @@ static char * test_exit()
                       };
     test_init_vm(mem, prog, state, memsize);
 
-    run(&state, mem);
+    vm_run(&state, mem);
 
     pu_assert("error, SP not correctly reverted back after exit", state.regs[1] == 0x8);
     pu_assert("error, FP not correctly reverted back after exit", state.regs[2] == 0x8);

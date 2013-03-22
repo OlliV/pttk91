@@ -65,7 +65,7 @@ struct vm_state {
     int running;
 };
 
-void init_vm_state(struct vm_state * state, int code_size, int memsize);
-void run(struct vm_state * state, uint32_t * mem);
+void vm_init_state(struct vm_state * state, int code_size, int memsize);
+void vm_run(struct vm_state * state, uint32_t * mem);
 
 #endif /* VM_H */

@@ -1,4 +1,4 @@
-# Universal unit tests ########################################################
+# Linux integration tests #####################################################
 
 # Add here one or more source code directories.
 # PUnit will automatically build those modules that are testable by implemented
