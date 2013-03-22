@@ -1,0 +1,13 @@
+# Build target selection
+# Valid targets:
+# - LINUX = Linux + GCC
+TARGET = LINUX
+
+# Enable debugging: (0/1) 
+VM_DEBUG = 1
+
+# Allow writes in code area
+VM_CODE_AREA_RW = 0
+
+# Allow execution in data area
+VM_DATA_ALLOW_PC = 0

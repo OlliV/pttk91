@@ -1,5 +1,12 @@
-SRCDIR = ./src/ ./src/portable/linux/
+include ./config
+
+SRCDIR = ./src/
+ifeq ($(TARGET),LINUX)
+	SRCDIR += ./src/portable/linux/
+endif
+
 IDIR = ./include ./src
+CONFIG_H = ./include/config.h
 LIBS=
 
 SRC = $(foreach d,$(dir $(SRCDIR)),$(wildcard $(d)*.c))
@@ -14,7 +21,17 @@ OBJ = $(patsubst %,./$(ODIR)/%,$(notdir $(SRC:.c=.o)))
 
 space = $(empty) $(empty)
 
-all: $(OBJ) vm
+all: config $(OBJ) vm
+
+config: $(CONFIG_H)
+
+$(CONFIG_H):
+	@cp ./include/config.template $(CONFIG_H)
+	@echo "#define VM_PLATFORM $(TARGET)" >> $(CONFIG_H)
+	@echo "#define VM_DEBUG $(VM_DEBUG)" >> $(CONFIG_H)
+	@echo "#define VM_CODE_AREA_RW $(VM_CODE_AREA_RW)" >> $(CONFIG_H)
+	@echo "#define VM_DATA_ALLOW_PC $(VM_DATA_ALLOW_PC)" >> $(CONFIG_H)
+	@echo "#endif" >> $(CONFIG_H)
 
 $(OBJ): $(SRC)
 	$(eval CUR_SRC := $(notdir $(@:.o=.c)))
@@ -29,5 +46,5 @@ vm: $(OBJ)
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o 
+	rm -f $(ODIR)/*.o $(CONFIG_H)
 
