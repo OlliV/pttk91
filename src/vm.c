@@ -208,7 +208,6 @@ static int eval(struct vm_state * state, uint32_t * mem)
         state->regs[rj] = param;
         break;
     case PTTK91_IN:
-        //printf("ININNNNN\n");
         if (inp(param, &(state->regs[rj]))) {
             return VM_ERR_INVALID_DEVICE;
         }
