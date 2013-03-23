@@ -31,11 +31,17 @@
 #define VM_ERR_ILLEGAL_SVC              8
 #define VM_ERR_INVALID_DEVICE           9
 
-#define VM_ERR_STR(code) case code: fprintf(stderr, "%i, %s\n", code, #code); return
-#define VM_ERR_STR2(code, msg) case code: return fprintf(stderr, "%i, %s\n", code, msg); return
+/* Error message macros */
+#define VM_ERR_STR(code)        case code: fprintf(stderr, "%i, %s\n", code, #code); return
+#define VM_ERR_STR2(code, msg)  case code: return fprintf(stderr, "%i, %s\n", code, msg); return
+
+/**
+ * Print error message.
+ * @param error_code indicates the error code of the message that should be printed.
+ */
 static void print_error_msg(int error_code)
 {
-    fprintf(stderr, "Runtime error : ");
+    fprintf(stderr, "Runtime error: ");
     switch (error_code)
     {
         VM_ERR_STR(VM_ERR_NO_ERROR); /* Hope this pops up somewhere ^_^ */
@@ -50,8 +56,12 @@ static void print_error_msg(int error_code)
         VM_ERR_STR(VM_ERR_INVALID_DEVICE);
     }
 }
+#undef VM_ERR_STR
+#undef VM_ERR_STR2 /* These should not be used anywhere else */
 
 /* Macros */
+/* Here is some macros for mainly bounds checking.
+ */
 #define VM_REG_OUT_OF_BOUNDS(regX)              (regX < 0 || regX >= PTTK91_NUM_REGS)
 /* Check if mem address is between 0 and memsize */
 #define VM_MEM_OUT_OF_BOUNDS(memaddr, memsize)  (memaddr >= memsize || memaddr < 0)
@@ -156,7 +166,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     int ri = state->ri;
     int memsize = state->memsize;
 
-    int param; /* Final second arg value */
+    int param; /* Final second arg value will be stored to this variable */
     int i, sp; /* Temp variables */
 
     param = state->imm; /* Starting point for "parsing" the final value */
@@ -478,18 +488,14 @@ void vm_run(struct vm_state * state, uint32_t * mem)
 #if VM_DEBUG == 1
             showRegs(state);
 #endif
-        rstate++;
-        /*@fallthrough@*/
-
-        case 1:
             error_code = fetch(&instr, state, mem);
         break;
 
-        case 2:
+        case 1:
             error_code = decode(state, instr);
             break;
 
-        case 3:
+        case 2:
             error_code = eval(state, mem);
             break;
 
@@ -499,10 +505,10 @@ void vm_run(struct vm_state * state, uint32_t * mem)
         }
         if (error_code != 0) {
             print_error_msg(error_code);
-            return;
+            state->running = 0;
         }
 
-        if (++rstate > 3)
+        if (++rstate > 2)
             rstate = 0;
     } while (state->running);
 
