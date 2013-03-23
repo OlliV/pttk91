@@ -470,19 +470,9 @@ void vm_run(struct vm_state * state, uint32_t * mem)
 {
     uint32_t instr = 0;
     int error_code;
-    int rstate = -1;
+    int rstate = 0;
 
     do {
-        rstate++;
-        rstate = rstate & (0x4 - 1);
-
-        if (rstate == 0) {
-            rstate++;
-            #if VM_DEBUG == 1
-                showRegs(state);
-            #endif
-        }
-
         switch (rstate) {
         case 0:
 #if VM_DEBUG == 1
@@ -507,11 +497,13 @@ void vm_run(struct vm_state * state, uint32_t * mem)
             error_code = 0;
             break;
         }
-
-        if(error_code != 0) {
+        if (error_code != 0) {
             print_error_msg(error_code);
             return;
         }
+
+        if (++rstate > 3)
+            rstate = 0;
     } while (state->running);
 
 #if VM_DEBUG == 1
