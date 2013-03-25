@@ -5,6 +5,11 @@
 #include "config.h"
 
 /* Portable functions */
+/**
+ * Portable input handler.
+ * @param device
+ * @param ret_val
+ */
 int inp(int device, int * ret_val);
 /* End of portable functions */
 

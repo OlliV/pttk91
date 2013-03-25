@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdint.h>
-
 #include "elf_loader.h"
 
 void elf_loader_read_instrs(uint32_t * buff, FILE * fp, unsigned long start, unsigned long end);

@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
-
 #include "vm.h"
 #include "b91loader.h"
 
