@@ -30,8 +30,8 @@
 
 /* Register definitions */
 #define PTTK91_NUM_REGS     8
-#define PTTK91_SP           6 /* Default SP */
-#define PTTK91_FP           7 /* Defaulr FP */
+#define PTTK91_SP           6 /*!< Default SP */
+#define PTTK91_FP           7 /*!< Defaulr FP */
 
 /* Instruction word definitions */
 #define PTTK91_OPCODE_POS   24
@@ -39,13 +39,16 @@
 #define PTTK91_M_POS        19
 #define PTTK91_PI_POS       16
 
-/* Begin of PTTK91 opcodes */
-#define PTTK91_NOP      0x0 << PTTK91_OPCODE_POS
+/* Begin of PTTK91 opcodes ***************************************************/
+#define PTTK91_NOP      0x0 << PTTK91_OPCODE_POS /*!< No operation */
+
+/* Data transfer instructions */
 #define PTTK91_STORE    0x1 << PTTK91_OPCODE_POS
 #define PTTK91_LOAD     0x2 << PTTK91_OPCODE_POS
 #define PTTK91_IN       0x3 << PTTK91_OPCODE_POS
 #define PTTK91_OUT      0x4 << PTTK91_OPCODE_POS
 
+/* Arithmetic ja logic instructions */
 #define PTTK91_ADD      0x11 << PTTK91_OPCODE_POS
 #define PTTK91_SUB      0x12 << PTTK91_OPCODE_POS
 #define PTTK91_MUL      0x13 << PTTK91_OPCODE_POS
@@ -62,6 +65,7 @@
 
 #define PTTK91_COMP     0x1f << PTTK91_OPCODE_POS
 
+/* Branching instructions */
 #define PTTK91_JUMP     0x20 << PTTK91_OPCODE_POS
 #define PTTK91_JNEG     0x21 << PTTK91_OPCODE_POS
 #define PTTK91_JZER     0x22 << PTTK91_OPCODE_POS
@@ -77,21 +81,25 @@
 #define PTTK91_JNEQU    0x2b << PTTK91_OPCODE_POS
 #define PTTK91_JNGRE    0x2c << PTTK91_OPCODE_POS
 
+/* Subroutine instructions */
 #define PTTK91_CALL     0x31 << PTTK91_OPCODE_POS
 #define PTTK91_EXIT     0x32 << PTTK91_OPCODE_POS
+
+/* Stack instructions */
 #define PTTK91_PUSH     0x33 << PTTK91_OPCODE_POS
 #define PTTK91_POP      0x34 << PTTK91_OPCODE_POS
 #define PTTK91_PUSHR    0x35 << PTTK91_OPCODE_POS
 #define PTTK91_POPR     0x36 << PTTK91_OPCODE_POS
 
+/* System calls */
 #define PTTK91_SVC      0x70 << PTTK91_OPCODE_POS
-/* End of PTTK91 opcodes */
+/* End of PTTK91 opcodes *****************************************************/
 
 /* Addressing modes */
-#define PTTK91_ADDRMOD_0 0x0                 /* From register */
-#define PTTK91_ADDRMOD_1 0x1 << PTTK91_M_POS /* From memory */
-#define PTTK91_ADDRMOD_2 0x2 << PTTK91_M_POS /* Memory pointer */
-#define PTTK91_ADDRMOD_3 0x3 << PTTK91_M_POS /* Not used */
+#define PTTK91_ADDRMOD_0 0x0                 /*!< From register */
+#define PTTK91_ADDRMOD_1 0x1 << PTTK91_M_POS /*!< From memory */
+#define PTTK91_ADDRMOD_2 0x2 << PTTK91_M_POS /*!< Memory pointer */
+#define PTTK91_ADDRMOD_3 0x3 << PTTK91_M_POS /*!< Not used */
 /* End of Addressing modes */
 
 #endif /* PTTK91_H */

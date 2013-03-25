@@ -12,7 +12,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-
 #include "arit.h"
 #include "inp.h"
 #include "outp.h"
@@ -138,7 +137,7 @@ static int fetch(uint32_t * instr, struct vm_state * state, const uint32_t * mem
 }
 
 /**
- *  Decode a word.
+ *  Decode a instruction word.
  */
 static int decode(struct vm_state * state, uint32_t instr)
 {
@@ -459,7 +458,6 @@ static int eval(struct vm_state * state, uint32_t * mem)
 
 /**
  * Print all registers.
- * TODO This should be removed or moved elsewhere in the future
  */
 static void showRegs(const struct vm_state * state)
 {
@@ -484,18 +482,18 @@ void vm_run(struct vm_state * state, uint32_t * mem)
 
     do {
         switch (rstate) {
-        case 0:
+        case 0: /* Fetch */
 #if VM_DEBUG == 1
             showRegs(state);
 #endif
             error_code = fetch(&instr, state, mem);
         break;
 
-        case 1:
+        case 1: /* Decode */
             error_code = decode(state, instr);
             break;
 
-        case 2:
+        case 2: /* Evaluate */
             error_code = eval(state, mem);
             break;
 
@@ -503,6 +501,7 @@ void vm_run(struct vm_state * state, uint32_t * mem)
             error_code = 0;
             break;
         }
+        /* Halt on runtime error */
         if (error_code != 0) {
             print_error_msg(error_code);
             state->running = 0;
