@@ -3,7 +3,7 @@
 
 #define INP_KBD 0x1
 
-int inp(int device, int * ret_val)
+int inp_handler(int device, int * ret_val)
 {
     int ch, err;
     *ret_val = 0;

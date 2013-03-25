@@ -187,11 +187,13 @@ static int eval(struct vm_state * state, uint32_t * mem)
             return VM_ERR_BAD_ACCESS_MODE;
         }
 
+        /* First fetch */
         if (VM_MEM_OUT_OF_BOUNDS(param, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
         param = mem[param];
 
+        /* Second fetch */
         if (VM_MEM_OUT_OF_BOUNDS(param, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
         }
@@ -217,12 +219,12 @@ static int eval(struct vm_state * state, uint32_t * mem)
         state->regs[rj] = param;
         break;
     case PTTK91_IN:
-        if (inp(param, &(state->regs[rj]))) {
+        if (inp_handler(param, &(state->regs[rj]))) {
             return VM_ERR_INVALID_DEVICE;
         }
         break;
     case PTTK91_OUT:
-        if (outp(param, state->regs[rj])) {
+        if (outp_handler(param, state->regs[rj])) {
             return VM_ERR_INVALID_DEVICE;
         }
         break;
@@ -362,6 +364,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     /* Subroutine instructions */
     case PTTK91_CALL:
         state->regs[rj] = state->regs[rj] + 2;
+
         /* Check that the new stack pointer is valid */
         if (VM_MEM_OUT_OF_BOUNDS_STORE(state->regs[rj], state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
@@ -374,6 +377,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
         break;
     case PTTK91_EXIT:
         sp = state->regs[PTTK91_FP];
+
         /* Check that the old fp location is valid */
         if (VM_MEM_OUT_OF_BOUNDS(sp, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
@@ -395,6 +399,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     case PTTK91_PUSH:
         state->regs[rj] = state->regs[rj] + 1;
         sp = state->regs[rj];
+
         /* Check that the new sp value is valid */
         if (VM_MEM_OUT_OF_BOUNDS_STORE(sp, state->code_sec_end, memsize)) {
             return VM_ERR_ADDRESS_OUT_OF_BOUNDS;
@@ -404,6 +409,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     case PTTK91_POP:
         sp = state->regs[rj];
         /* POP: Second operand should be always a register */
+
         if (state->m != 0) {
             return VM_ERR_BAD_ACCESS_MODE;
         }
@@ -437,16 +443,18 @@ static int eval(struct vm_state * state, uint32_t * mem)
 
     /* System calls */
     case PTTK91_SVC:
-        /* TODO */
         if (param == SVC_HALT) {
 #if VM_DEBUG == 1
             printf("SVC halt\n");
 #endif
             state->running = 0;
-        } else if (param == SVC_LIB) {
-
-        }  else {
-            return VM_ERR_ILLEGAL_SVC;
+        } else {
+#if VM_DEBUG == 1
+            printf("SVC %i\n", param);
+#endif
+            if (svc_handler(state, mem, param)) {
+                return VM_ERR_ILLEGAL_SVC;
+            }
         }
         break;
     default:

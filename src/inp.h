@@ -7,10 +7,11 @@
 /* Portable functions */
 /**
  * Portable input handler.
- * @param device
- * @param ret_val
+ * @param device code.
+ * @param ret_val return value.
+ * @return error code, zero if no error.
  */
-int inp(int device, int * ret_val);
+int inp_handler(int device, int * ret_val);
 /* End of portable functions */
 
 #ifndef VM_PLATFORM

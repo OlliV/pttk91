@@ -9,7 +9,13 @@
 /* End of Portbale devices */
 
 /* Portable functions */
-int outp(int device, int value);
+/**
+ * Portable output handler.
+ * @param device code.
+ * @param value parameter value.
+ * @return error code, zero if no error.
+ */
+int outp_handler(int device, int value);
 /* End of portable functions */
 
 #ifndef VM_PLATFORM
