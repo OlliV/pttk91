@@ -41,9 +41,9 @@ static char * test_load()
 
     vm_run(&state, mem);
 
-    pu_assert("error, Load immediate : load r1, =1", state.regs[1] == 0x1);
-    pu_assert("error, Load direct mem fetch : load r2, a", state.regs[2] == 0xa);
-    pu_assert("error, Load indirect mem fetch : load r3, @b", state.regs[3] == 0xa);
+    pu_assert_equal("error, Load immediate : load r1, =1", state.regs[1], 0x1);
+    pu_assert_equal("error, Load direct mem fetch : load r2, a", state.regs[2], 0xa);
+    pu_assert_equal("error, Load indirect mem fetch : load r3, @b", state.regs[3], 0xa);
     return 0;
 }
 
@@ -62,9 +62,9 @@ static char * test_store()
 
     vm_run(&state, mem);
 
-    pu_assert("error, Store the value of r1 to a", mem[7] == 0x1);
-    pu_assert("error, Store the address of b to pb", mem[9] == 0x8);
-    pu_assert("error, Store the value of r1 to an address pointed by pb", mem[8] == 0x2);
+    pu_assert_equal("error, Store the value of r1 to a", mem[7], 0x1);
+    pu_assert_equal("error, Store the address of b to pb", mem[9], 0x8);
+    pu_assert_equal("error, Store the value of r1 to an address pointed by pb", mem[8], 0x2);
     return 0;
 }
 
@@ -85,9 +85,9 @@ static char * test_code_prot()
     vm_run(&state, mem);
 
 #if VM_CODE_AREA_RW == 0
-    pu_assert("error, Code memory area protection failed.", state.regs[1] == 0x0);
+    pu_assert_equal("error, Code memory area protection failed.", state.regs[1], 0x0);
 #else
-    pu_assert("error, Code memory area should be in writable.", state.regs[1] == 0x2);
+    pu_assert_equal("error, Code memory area should be in writable.", state.regs[1], 0x2);
 #endif
     return 0;
 }
@@ -107,10 +107,10 @@ static char * test_pc_prot()
 
 #if VM_DATA_ALLOW_PC == 0
     pu_assert("error, PC should not run into data area.", state.pc <= 0x2);
-    pu_assert("error, PC should not run into data area.", state.regs[1] == 0x1);
+    pu_assert_equal("error, PC should not run into data area.", state.regs[1], 0x1);
 #else
     pu_assert("error, It should be possible to set PC into data area.", state.pc > 0x2);
-    pu_assert("error, It should be possible to run code stored in data area.", state.regs[1] == 0x2);
+    pu_assert_equal("error, It should be possible to run code stored in data area.", state.regs[1], 0x2);
 #endif
     return 0;
 }
@@ -126,8 +126,8 @@ static char * test_push()
 
     vm_run(&state, mem);
 
-    pu_assert("error, Expected push to store a value 5", mem[3] == 0x5);
-    pu_assert("error, Expected push to increment the sp value", state.regs[2] == 0x3);
+    pu_assert_equal("error, Expected push to store a value 5", mem[3], 0x5);
+    pu_assert_equal("error, Expected push to increment the sp value", state.regs[2], 0x3);
     return 0;
 }
 
@@ -144,8 +144,8 @@ static char * test_pop()
 
     vm_run(&state, mem);
 
-    pu_assert("error, Expected pop to load a value 1", state.regs[1] == 0x1);
-    pu_assert("error, Expected pop to decrement the sp value", state.regs[2] == 0x3);
+    pu_assert_equal("error, Expected pop to load a value 1", state.regs[1], 0x1);
+    pu_assert_equal("error, Expected pop to decrement the sp value", state.regs[2], 0x3);
     return 0;
 }
 
@@ -166,9 +166,9 @@ static char * test_pushr()
 
     vm_run(&state, mem);
 
-    pu_assert("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]) == 7);
-    pu_assert("error, Expected pushr to push =1 as a second value in the stack", mem[10] == 1);
-    pu_assert("error, Expected =5 in mem[14]", mem[14] == 5);
+    pu_assert_equal("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]), 7);
+    pu_assert_equal("error, Expected pushr to push =1 as a second value in the stack", mem[10], 1);
+    pu_assert_equal("error, Expected =5 in mem[14]", mem[14], 5);
     return 0;
 }
 
@@ -189,9 +189,9 @@ static char * test_popr()
 
     vm_run(&state, mem);
 
-    pu_assert("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]) == 7);
-    pu_assert("error, Expected pushr to push =1 as a second value in the stack", mem[10] == 1);
-    pu_assert("error, Expected =5 in mem[14]", mem[14] == 5);
+    pu_assert_equal("error, Expected pushr to store 7 values", (state.regs[1] - state.regs[2]), 7);
+    pu_assert_equal("error, Expected pushr to push =1 as a second value in the stack", mem[10], 1);
+    pu_assert_equal("error, Expected =5 in mem[14]", mem[14], 5);
     return 0;
 }
 
@@ -209,11 +209,11 @@ static char * test_call()
 
     vm_run(&state, mem);
 
-    pu_assert("error, Parameter pushed correctly", mem[6] == 1000);
-    pu_assert("error, Return address pushed correctly by call instr", mem[7] == 0x2);
-    pu_assert("error, Original Frame Pointer pushed correctly by call instr", mem[8] == 0x5);
-    pu_assert("error, New Stack Pointer increments to correct position", mem[15] == 0xf);
-    pu_assert("error, New Frame Pointer set correctly", state.regs[2] == 0x8);
+    pu_assert_equal("error, Parameter pushed correctly", mem[6], 1000);
+    pu_assert_equal("error, Return address pushed correctly by call instr", mem[7], 0x2);
+    pu_assert_equal("error, Original Frame Pointer pushed correctly by call instr", mem[8], 0x5);
+    pu_assert_equal("error, New Stack Pointer increments to correct position", mem[15], 0xf);
+    pu_assert_equal("error, New Frame Pointer set correctly", state.regs[2], 0x8);
     return 0;
 
 }
@@ -235,9 +235,9 @@ static char * test_exit()
 
     vm_run(&state, mem);
 
-    pu_assert("error, SP not correctly reverted back after exit", state.regs[1] == 0x8);
-    pu_assert("error, FP not correctly reverted back after exit", state.regs[2] == 0x8);
-    pu_assert("error, Branch after call instruction failed?", state.regs[3] == 0x3);
+    pu_assert_equal("error, SP not correctly reverted back after exit", state.regs[1], 0x8);
+    pu_assert_equal("error, FP not correctly reverted back after exit", state.regs[2], 0x8);
+    pu_assert_equal("error, Branch after call instruction failed?", state.regs[3], 0x3);
     return 0;
 
 }
@@ -245,15 +245,15 @@ static char * test_exit()
 
 static void all_tests()
 {
-    pu_run_test(test_load);
-    pu_run_test(test_store);
-    pu_run_test(test_code_prot);
-    pu_run_test(test_pc_prot);
-    pu_run_test(test_push);
-    pu_run_test(test_pop);
-    pu_run_test(test_pushr);
-    pu_run_test(test_call);
-    pu_run_test(test_exit);
+    pu_def_test(test_load, PU_RUN);
+    pu_def_test(test_store, PU_RUN);
+    pu_def_test(test_code_prot, PU_RUN);
+    pu_def_test(test_pc_prot, PU_RUN);
+    pu_def_test(test_push, PU_RUN);
+    pu_def_test(test_pop, PU_RUN);
+    pu_def_test(test_pushr, PU_RUN);
+    pu_def_test(test_call, PU_RUN);
+    pu_def_test(test_exit, PU_RUN);
 }
 
 int main(int argc, char **argv)

@@ -68,12 +68,12 @@ static char * test_arrinit()
     vm_init_state(&state, code_size, memsize);
     vm_run(&state, mem);
 
-    pu_assert("Correct r1 value", state.regs[1] == 3);
-    pu_assert("Correct r2 value", state.regs[2] == 2716);
-    pu_assert("Correct r3 value", state.regs[3] == 2716);
-    pu_assert("Correct mem value at", mem[20] == -875);
-    pu_assert("Correct mem value at", mem[25] == 860);
-    pu_assert("Correct mem value at", mem[27] == 1554);
+    pu_assert_equal("Correct r1 value", state.regs[1], 3);
+    pu_assert_equal("Correct r2 value", state.regs[2], 2716);
+    pu_assert_equal("Correct r3 value", state.regs[3], 2716);
+    pu_assert_equal("Correct mem value at", mem[20], -875);
+    pu_assert_equal("Correct mem value at", mem[25], 860);
+    pu_assert_equal("Correct mem value at", mem[27], 1554);
     return 0;
 }
 
