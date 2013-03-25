@@ -1,14 +1,12 @@
 /**
  *******************************************************************************
- * @file    svc.c
+ * @file    elfloader.h
  * @author  Olli Vanhoja
- * @brief   SVC handler for the Linux port of PTTK91.
+ * @brief   Elf binary loader.
  *******************************************************************************
  */
 
-#include "svc.h"
-
-int svc_handler(struct vm_state * state,  uint32_t * mem, int call_code)
-{
-    return 1;
-}
+#ifndef ELFLOADER_H
+#define ELFLOADER_H
+void elf_loader_read_file(uint32_t * mem, int memsize, char * name);
+#endif

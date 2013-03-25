@@ -1,3 +1,11 @@
+/**
+ *******************************************************************************
+ * @file    outp.c
+ * @author  Olli Vanhoja
+ * @brief   Output handler for the Linux port of PTTK91.
+ *******************************************************************************
+ */
+
 #include <stdio.h>
 #include "outp.h"
 

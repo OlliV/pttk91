@@ -1,6 +1,14 @@
+/**
+ *******************************************************************************
+ * @file    elfloader.c
+ * @author  Olli Vanhoja
+ * @brief   Elf loader port for the Linux port of PTTK91.
+ *******************************************************************************
+ */
+
 #include <stdio.h>
 #include <stdint.h>
-#include "elf_loader.h"
+#include "elfloader.h"
 
 void elf_loader_read_instrs(uint32_t * buff, FILE * fp, unsigned long start, unsigned long end);
 

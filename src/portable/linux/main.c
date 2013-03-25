@@ -1,3 +1,11 @@
+/**
+ *******************************************************************************
+ * @file    main.c
+ * @author  Olli Vanhoja
+ * @brief   Main soure file for the Linux port of PTTK91.
+ *******************************************************************************
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>

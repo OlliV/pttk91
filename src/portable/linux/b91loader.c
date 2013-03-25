@@ -1,3 +1,11 @@
+/**
+ *******************************************************************************
+ * @file    b91load.c
+ * @author  Olli Vanhoja
+ * @brief   B91 Titokone binary file loader for the Linux port of PTTK91.
+ *******************************************************************************
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
