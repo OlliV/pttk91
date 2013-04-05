@@ -144,7 +144,7 @@ static int decode(struct vm_state * state, uint32_t instr)
     state->opcode   = (int)(instr & 0xFF000000);
     state->rj       = (int)((instr & 0x00E00000) >> PTTK91_RJ_POS);
     state->m        = (int)(instr & 0x00180000);
-    state->ri       = (int)((instr & 0x00070000) >> PTTK91_PI_POS);
+    state->ri       = (int)((instr & 0x00070000) >> PTTK91_RI_POS);
     state->imm      = (int)(instr & 0x0000ffff);
 
     if (VM_REG_OUT_OF_BOUNDS(state->rj) || VM_REG_OUT_OF_BOUNDS(state->ri)) {

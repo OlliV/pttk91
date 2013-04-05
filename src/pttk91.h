@@ -37,7 +37,7 @@
 #define PTTK91_OPCODE_POS   24
 #define PTTK91_RJ_POS       21
 #define PTTK91_M_POS        19
-#define PTTK91_PI_POS       16
+#define PTTK91_RI_POS       16
 
 /* Begin of PTTK91 opcodes ***************************************************/
 #define PTTK91_NOP      0x0 << PTTK91_OPCODE_POS /*!< No operation */
