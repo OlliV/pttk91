@@ -211,6 +211,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
     /* Data transfer instructions */
     case PTTK91_STORE:
         if (VM_MEM_OUT_OF_BOUNDS_STORE(param, state->code_sec_end, memsize)) {
+            state->sr.fma = 1;
             return VM_ERR_WR_ADDRESS_OUT_OF_BOUNDS;
         }
         mem[param] = state->regs[rj];
@@ -266,16 +267,16 @@ static int eval(struct vm_state * state, uint32_t * mem)
     case PTTK91_XOR:
         state->regs[rj] = (unsigned int)(state->regs[rj]) ^ (unsigned int)param;
         break;
-    case PTTK91_SHL:
+    case PTTK91_SHL: /* Shift left */
         state->regs[rj] = (unsigned int)(state->regs[rj]) << (unsigned int)param;
         break;
-    case PTTK91_SHR:
+    case PTTK91_SHR: /* Shift right */
         state->regs[rj] = (unsigned int)(state->regs[rj]) >> (unsigned int)param;
         break;
     case PTTK91_NOT:
         state->regs[rj] = ~((unsigned int)(state->regs[rj]));
         break;
-    case PTTK91_SHRA:
+    case PTTK91_SHRA: /* Arithmetic shift right */
         state->regs[rj] = arithmetic_right_shift(state->regs[rj], (unsigned int)param);
         break;
 
@@ -458,6 +459,7 @@ static int eval(struct vm_state * state, uint32_t * mem)
         }
         break;
     default:
+        state->sr.uni = 1;
         return VM_ERR_INVALID_OPCODE;
     }
 
