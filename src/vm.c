@@ -444,18 +444,11 @@ static int eval(struct vm_state * state, uint32_t * mem)
 
     /* System calls */
     case PTTK91_SVC:
-        if (param == SVC_HALT) {
 #if VM_DEBUG == 1
-            printf("SVC halt\n");
+        printf("SVC %i\n", param);
 #endif
-            state->running = 0;
-        } else {
-#if VM_DEBUG == 1
-            printf("SVC %i\n", param);
-#endif
-            if (svc_handler(state, mem, param)) {
-                return VM_ERR_ILLEGAL_SVC;
-            }
+        if (svc_handler(state, mem, param)) {
+            return VM_ERR_ILLEGAL_SVC;
         }
         break;
     default:
