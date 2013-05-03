@@ -16,9 +16,9 @@
  */
 struct vm_state {
     int regs[PTTK91_NUM_REGS];
-    int pc; /* program counter */
+    int pc; /* Program counter */
 
-    /* Rest of variables for internal use */
+    /* Rest of variables are for internal use */
     int opcode;
     /* operands: */
     int rj;
@@ -27,7 +27,8 @@ struct vm_state {
     int imm;
 
     /**
-     * state register.<br/>
+     * State register
+     *
      * <b>index:</b>
      * + gre - greater
      * + equ - equal
@@ -58,7 +59,7 @@ struct vm_state {
     /** Size of memory area */
     int memsize;
 
-    /** End of code section */
+    /** End address of the code section */
     int code_sec_end;
 
     /** the VM runs until this flag becomes 0 */
