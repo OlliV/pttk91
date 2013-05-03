@@ -14,8 +14,6 @@
 #include "vm.h"
 #include "config.h"
 
-#define SVC_HALT    0x0b    /*!< SVC to halt the program */
-
 #define svc_lib     0x0a    /*!< Native library call */
 #define svc_halt    0x0b    /*!< Halt program */
 #define svc_read    0x0c
@@ -23,7 +21,7 @@
 #define svc_time    0x0e
 #define svc_date    0x0f
 
-/* Portable SVC calls; Common interface but implementation specific code. */
+/** For all SVCs; X Macro */
 #define FOR_ALL_SVC(apply) \
     apply(svc_lib)         \
     apply(svc_halt)        \
